@@ -28,6 +28,7 @@ struct ContentView: View {
                             html: documentViewModel.renderedHTML,
                             baseURL: documentViewModel.baseURL,
                             fileURL: documentViewModel.renderedFileURL,
+                            requestID: documentViewModel.previewRequestID,
                             onDiagnostics: { message in
                                 documentViewModel.updatePreviewDiagnostics(message)
                             }

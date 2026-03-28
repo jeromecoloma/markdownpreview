@@ -13,6 +13,7 @@ final class DocumentViewModel: ObservableObject {
     @Published private(set) var renderedHTML = ""
     @Published private(set) var baseURL: URL?
     @Published private(set) var renderedFileURL: URL?
+    @Published private(set) var previewRequestID = UUID()
     @Published private(set) var isLoading = false
     @Published var presentedError: PresentedError?
     @Published var previewDiagnostics: String?
@@ -141,6 +142,7 @@ final class DocumentViewModel: ObservableObject {
 
     private func startPreviewAttempt() {
         previewTimeoutTask?.cancel()
+        previewRequestID = UUID()
         previewDiagnostics = "Loading preview…"
         useNativeFallback = false
 

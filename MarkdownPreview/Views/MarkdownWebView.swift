@@ -6,6 +6,7 @@ struct MarkdownWebView: NSViewRepresentable {
     let html: String
     let baseURL: URL?
     let fileURL: URL?
+    let requestID: UUID
     let onDiagnostics: @MainActor (String?) -> Void
 
     func makeCoordinator() -> Coordinator {
@@ -28,7 +29,8 @@ struct MarkdownWebView: NSViewRepresentable {
         guard
             context.coordinator.lastHTML != html ||
             context.coordinator.lastBaseURL != baseURL ||
-            context.coordinator.lastFileURL != fileURL
+            context.coordinator.lastFileURL != fileURL ||
+            context.coordinator.lastRequestID != requestID
         else {
             return
         }
@@ -36,6 +38,7 @@ struct MarkdownWebView: NSViewRepresentable {
         context.coordinator.lastHTML = html
         context.coordinator.lastBaseURL = baseURL
         context.coordinator.lastFileURL = fileURL
+        context.coordinator.lastRequestID = requestID
         context.coordinator.report("Loading preview…")
 
         if let fileURL {
@@ -49,6 +52,7 @@ struct MarkdownWebView: NSViewRepresentable {
         var lastHTML = ""
         var lastBaseURL: URL?
         var lastFileURL: URL?
+        var lastRequestID = UUID()
         var onDiagnostics: @MainActor (String?) -> Void
 
         init(onDiagnostics: @escaping @MainActor (String?) -> Void) {
