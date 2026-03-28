@@ -184,7 +184,9 @@ struct ContentView: View {
             let opened = await documentViewModel.open(url: url)
             if opened {
                 await MainActor.run {
-                    recentFilesViewModel.add(url: url)
+                    withAnimation(.easeInOut(duration: 0.22)) {
+                        recentFilesViewModel.add(url: url)
+                    }
                 }
             }
         }
