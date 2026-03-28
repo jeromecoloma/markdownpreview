@@ -28,30 +28,42 @@ struct SidebarView: View {
                 .padding(18)
                 .background(.quaternary.opacity(0.35), in: RoundedRectangle(cornerRadius: 14))
             } else {
-                List(recentFilesViewModel.recentFiles) { item in
-                    Button {
-                        openRecent(item)
-                    } label: {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(item.fileName)
-                                .font(.body.weight(.medium))
-                                .foregroundStyle(isSelected(item) ? .primary : .primary)
-                            Text(item.parentDirectory)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                                .lineLimit(1)
+                ScrollViewReader { proxy in
+                    List(recentFilesViewModel.recentFiles) { item in
+                        Button {
+                            openRecent(item)
+                        } label: {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(item.fileName)
+                                    .font(.body.weight(.medium))
+                                    .foregroundStyle(isSelected(item) ? .primary : .primary)
+                                Text(item.parentDirectory)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                    .lineLimit(1)
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.vertical, 6)
                         }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.vertical, 6)
+                        .buttonStyle(.plain)
+                        .id(item.id)
+                        .listRowBackground(
+                            RoundedRectangle(cornerRadius: 10)
+                                .fill(isSelected(item) ? Color.accentColor.opacity(0.14) : .clear)
+                                .padding(.vertical, 2)
+                        )
                     }
-                    .buttonStyle(.plain)
-                    .listRowBackground(
-                        RoundedRectangle(cornerRadius: 10)
-                            .fill(isSelected(item) ? Color.accentColor.opacity(0.14) : .clear)
-                            .padding(.vertical, 2)
-                    )
+                    .listStyle(.sidebar)
+                    .onAppear {
+                        scrollSelectedRow(using: proxy)
+                    }
+                    .onChange(of: currentFileURL) { _ in
+                        scrollSelectedRow(using: proxy)
+                    }
+                    .onChange(of: recentFilesViewModel.recentFiles) { _ in
+                        scrollSelectedRow(using: proxy)
+                    }
                 }
-                .listStyle(.sidebar)
             }
 
             Spacer()
@@ -73,5 +85,17 @@ struct SidebarView: View {
         guard let currentFileURL else { return false }
         return currentFileURL.lastPathComponent == item.fileName &&
             currentFileURL.deletingLastPathComponent().path == item.parentDirectory
+    }
+
+    private func scrollSelectedRow(using proxy: ScrollViewProxy) {
+        guard let selectedID = recentFilesViewModel.recentFiles.first(where: isSelected)?.id else {
+            return
+        }
+
+        DispatchQueue.main.async {
+            withAnimation(.easeInOut(duration: 0.18)) {
+                proxy.scrollTo(selectedID, anchor: .top)
+            }
+        }
     }
 }

@@ -21,18 +21,27 @@ final class RecentFilesViewModel: ObservableObject {
             return
         }
 
+        let standardizedURL = url.standardizedFileURL
+        var items = recentFiles
+        let existingIndex = items.firstIndex { existing in
+            guard let existingURL = resolveURL(for: existing, refreshIfNeeded: false) else {
+                return false
+            }
+            return existingURL.standardizedFileURL == standardizedURL
+        }
+
+        let preservedID = existingIndex.map { items[$0].id }
+
+        if let existingIndex {
+            items.remove(at: existingIndex)
+        }
+
         let item = RecentFile(
+            id: preservedID ?? UUID().uuidString,
             fileName: url.lastPathComponent,
             parentDirectory: url.deletingLastPathComponent().path,
             bookmarkData: bookmarkData
         )
-
-        var items = recentFiles.filter { existing in
-            guard let existingURL = resolveURL(for: existing, refreshIfNeeded: false) else {
-                return true
-            }
-            return existingURL.standardizedFileURL != url.standardizedFileURL
-        }
 
         items.insert(item, at: 0)
         recentFiles = Array(items.prefix(maxRecentFiles))
