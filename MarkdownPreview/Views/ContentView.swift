@@ -25,7 +25,8 @@ struct ContentView: View {
                 recentFilesViewModel: recentFilesViewModel,
                 currentFileURL: documentViewModel.currentFileURL,
                 openPanel: presentOpenPanel,
-                openRecent: openRecentFile
+                openRecent: openRecentFile,
+                removeRecent: removeRecentFile
             )
             .navigationSplitViewColumnWidth(min: 260, ideal: 320)
         } detail: {
@@ -200,6 +201,12 @@ struct ContentView: View {
         }
 
         openFile(url)
+    }
+
+    private func removeRecentFile(_ item: RecentFile) {
+        withAnimation(.easeInOut(duration: 0.18)) {
+            recentFilesViewModel.remove(item)
+        }
     }
 
     private func openFile(_ url: URL) {

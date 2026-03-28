@@ -67,6 +67,11 @@ final class RecentFilesViewModel: ObservableObject {
         return url
     }
 
+    func remove(_ item: RecentFile) {
+        recentFiles.removeAll { $0.id == item.id }
+        persist()
+    }
+
     private func refreshBookmark(for item: RecentFile, resolvedURL: URL) {
         guard let updatedBookmark = try? resolvedURL.bookmarkData(
             options: .withSecurityScope,

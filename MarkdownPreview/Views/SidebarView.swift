@@ -5,6 +5,7 @@ struct SidebarView: View {
     let currentFileURL: URL?
     let openPanel: () -> Void
     let openRecent: (RecentFile) -> Void
+    let removeRecent: (RecentFile) -> Void
 
     @State private var hoveredItemID: String?
 
@@ -32,26 +33,37 @@ struct SidebarView: View {
             } else {
                 ScrollViewReader { proxy in
                     List(recentFilesViewModel.recentFiles) { item in
-                        Button {
-                            openRecent(item)
-                        } label: {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(item.fileName)
-                                    .font(.body.weight(.medium))
-                                    .foregroundStyle(isSelected(item) ? .primary : .primary)
-                                Text(item.parentDirectory)
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                                    .lineLimit(1)
+                        HStack(spacing: 8) {
+                            Button {
+                                openRecent(item)
+                            } label: {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(item.fileName)
+                                        .font(.body.weight(.medium))
+                                        .foregroundStyle(.primary)
+                                    Text(item.parentDirectory)
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                        .lineLimit(1)
+                                }
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(.vertical, 6)
                             }
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.vertical, 6)
+                            .buttonStyle(.plain)
+
+                            removeButton(for: item)
                         }
-                        .buttonStyle(.plain)
                         .id(item.id)
                         .onHover { isHovering in
                             withAnimation(.easeInOut(duration: 0.12)) {
                                 hoveredItemID = isHovering ? item.id : (hoveredItemID == item.id ? nil : hoveredItemID)
+                            }
+                        }
+                        .contextMenu {
+                            Button(role: .destructive) {
+                                removeRecent(item)
+                            } label: {
+                                Label("Remove from Recent Files", systemImage: "trash")
                             }
                         }
                         .listRowBackground(
@@ -116,5 +128,22 @@ struct SidebarView: View {
         }
 
         return .clear
+    }
+
+    @ViewBuilder
+    private func removeButton(for item: RecentFile) -> some View {
+        let isVisible = hoveredItemID == item.id
+
+        Button {
+            removeRecent(item)
+        } label: {
+            Image(systemName: "xmark.circle.fill")
+                .font(.system(size: 14))
+                .foregroundStyle(.secondary)
+        }
+        .buttonStyle(.borderless)
+        .help("Remove from Recent Files")
+        .opacity(isVisible ? 1 : 0)
+        .accessibilityHidden(!isVisible)
     }
 }
