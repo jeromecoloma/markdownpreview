@@ -1,7 +1,32 @@
+import AppKit
 import SwiftUI
+
+final class AppDelegate: NSObject, NSApplicationDelegate {
+    var openFilesHandler: (([URL]) -> Void)?
+    private var pendingURLs: [URL] = []
+
+    func application(_ application: NSApplication, open urls: [URL]) {
+        guard !urls.isEmpty else { return }
+
+        guard let openFilesHandler else {
+            pendingURLs.append(contentsOf: urls)
+            return
+        }
+
+        openFilesHandler(urls)
+    }
+
+    func flushPendingURLsIfNeeded() {
+        guard let openFilesHandler, !pendingURLs.isEmpty else { return }
+        let urls = pendingURLs
+        pendingURLs.removeAll()
+        openFilesHandler(urls)
+    }
+}
 
 @main
 struct MarkdownPreviewApp: App {
+    @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @StateObject private var documentViewModel = DocumentViewModel()
     @StateObject private var recentFilesViewModel = RecentFilesViewModel()
     @StateObject private var previewSearchController = PreviewSearchController()
@@ -14,11 +39,44 @@ struct MarkdownPreviewApp: App {
                 previewSearchController: previewSearchController
             )
             .frame(minWidth: 920, minHeight: 620)
+            .task {
+                configureExternalFileHandling()
+            }
         }
         .defaultSize(width: 1280, height: 820)
         .windowResizability(.contentSize)
         .commands {
             PreviewSearchCommands(previewSearchController: previewSearchController)
+        }
+    }
+
+    private func configureExternalFileHandling() {
+        guard appDelegate.openFilesHandler == nil else { return }
+
+        appDelegate.openFilesHandler = { urls in
+            Task { @MainActor in
+                await openIncomingFiles(urls)
+            }
+        }
+        appDelegate.flushPendingURLsIfNeeded()
+    }
+
+    @MainActor
+    private func openIncomingFiles(_ urls: [URL]) async {
+        guard let url = urls.first(where: DocumentViewModel.isSupportedMarkdownFile(_:)) else {
+            if let firstURL = urls.first {
+                documentViewModel.presentedError = .init(
+                    message: DocumentViewModel.unsupportedFileMessage(for: firstURL)
+                )
+            }
+            return
+        }
+
+        let opened = await documentViewModel.open(url: url)
+        if opened {
+            withAnimation(.easeInOut(duration: 0.22)) {
+                recentFilesViewModel.add(url: url)
+            }
         }
     }
 }
