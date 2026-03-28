@@ -6,6 +6,8 @@ struct SidebarView: View {
     let openPanel: () -> Void
     let openRecent: (RecentFile) -> Void
 
+    @State private var hoveredItemID: String?
+
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
             HStack {
@@ -47,9 +49,14 @@ struct SidebarView: View {
                         }
                         .buttonStyle(.plain)
                         .id(item.id)
+                        .onHover { isHovering in
+                            withAnimation(.easeInOut(duration: 0.12)) {
+                                hoveredItemID = isHovering ? item.id : (hoveredItemID == item.id ? nil : hoveredItemID)
+                            }
+                        }
                         .listRowBackground(
                             RoundedRectangle(cornerRadius: 10)
-                                .fill(isSelected(item) ? Color.accentColor.opacity(0.14) : .clear)
+                                .fill(backgroundColor(for: item))
                                 .padding(.vertical, 2)
                         )
                     }
@@ -97,5 +104,17 @@ struct SidebarView: View {
                 proxy.scrollTo(selectedID, anchor: .top)
             }
         }
+    }
+
+    private func backgroundColor(for item: RecentFile) -> Color {
+        if isSelected(item) {
+            return Color.accentColor.opacity(0.14)
+        }
+
+        if hoveredItemID == item.id {
+            return Color.primary.opacity(0.07)
+        }
+
+        return .clear
     }
 }
