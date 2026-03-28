@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Updated the app icon with the latest bundled artwork
+- Added Mermaid syntax support in the web preview, including offline flowchart rendering
+
 ## 0.1.0
 
 - Initial app scaffold
@@ -11,5 +16,4 @@
 
 ## Known Limitations
 
-- Mermaid rendering is not working reliably yet and should be considered unsupported in the current build
 - The rich `WKWebView` preview path is still under investigation; the app currently relies on the native Markdown fallback when the web preview stalls

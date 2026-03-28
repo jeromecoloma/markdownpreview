@@ -11,7 +11,9 @@ struct MarkdownRenderer {
     private struct BundledAssets {
         let markdownCSS: String
         let highlightCSS: String
+        let highlightJS: String
         let markedJS: String
+        let mermaidJS: String
     }
 
     private final class MarkdownHTMLParser {
@@ -114,6 +116,8 @@ struct MarkdownRenderer {
         let titleLiteral = escapeHTML(title)
         let markdownCSS = inlineStyleLiteral(for: bundledAssets.markdownCSS)
         let highlightCSS = inlineStyleLiteral(for: bundledAssets.highlightCSS)
+        let highlightJS = inlineScriptLiteral(for: bundledAssets.highlightJS)
+        let mermaidJS = inlineScriptLiteral(for: bundledAssets.mermaidJS)
         let renderedBody = renderedMarkdownHTML.replacingOccurrences(of: "</script", with: "<\\/script")
 
         let html = """
@@ -194,6 +198,52 @@ struct MarkdownRenderer {
           <div class="page">
             <article id="markdown-root" class="markdown-body">\(renderedBody)</article>
           </div>
+          <script>
+            \(highlightJS)
+          </script>
+          <script>
+            \(mermaidJS)
+          </script>
+          <script>
+            (() => {
+              const root = document.getElementById("markdown-root");
+              if (!root) {
+                return;
+              }
+
+              const mermaidSelector = "pre > code.language-mermaid, pre > code.lang-mermaid";
+              for (const codeBlock of root.querySelectorAll(mermaidSelector)) {
+                const pre = codeBlock.parentElement;
+                if (!pre) {
+                  continue;
+                }
+
+                const mermaidContainer = document.createElement("div");
+                mermaidContainer.className = "mermaid";
+                mermaidContainer.textContent = codeBlock.textContent ?? "";
+                pre.replaceWith(mermaidContainer);
+              }
+
+              if (window.hljs) {
+                for (const codeBlock of root.querySelectorAll("pre code")) {
+                  window.hljs.highlightElement(codeBlock);
+                }
+              }
+
+              if (window.mermaid) {
+                const prefersDark = window.matchMedia?.("(prefers-color-scheme: dark)").matches ?? false;
+                window.mermaid.initialize({
+                  startOnLoad: false,
+                  securityLevel: "loose",
+                  theme: prefersDark ? "dark" : "default"
+                });
+                window.mermaid.run({
+                  querySelector: "#markdown-root .mermaid",
+                  suppressErrors: true
+                });
+              }
+            })();
+          </script>
         </body>
         </html>
         """
@@ -214,11 +264,17 @@ struct MarkdownRenderer {
         value.replacingOccurrences(of: "</style", with: "<\\/style")
     }
 
+    private func inlineScriptLiteral(for value: String) -> String {
+        value.replacingOccurrences(of: "</script", with: "<\\/script")
+    }
+
     private static func loadBundledAssets() throws -> BundledAssets {
         BundledAssets(
             markdownCSS: try loadResource(named: "github-markdown", withExtension: "css"),
             highlightCSS: try loadResource(named: "highlight-github", withExtension: "css"),
-            markedJS: try loadResource(named: "marked.min", withExtension: "js")
+            highlightJS: try loadResource(named: "highlight.min", withExtension: "js"),
+            markedJS: try loadResource(named: "marked.min", withExtension: "js"),
+            mermaidJS: try loadResource(named: "mermaid.min", withExtension: "js")
         )
     }
 
