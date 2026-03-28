@@ -1,0 +1,21 @@
+.DS_Store
+
+# Xcode user state
+xcuserdata/
+*.xcuserstate
+*.xccheckout
+*.moved-aside
+
+# Swift Package Manager
+.build/
+Package.resolved
+
+# Project build outputs
+dist/DerivedData/
+dist/latest/
+
+# Archives and exported artifacts
+dist/releases/
+
+# Local tooling noise
+*.log

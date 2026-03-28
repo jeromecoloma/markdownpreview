@@ -1,0 +1,339 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		A10000000000000000000001 /* MarkdownPreviewApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000001 /* MarkdownPreviewApp.swift */; };
+		A10000000000000000000002 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000002 /* ContentView.swift */; };
+		A10000000000000000000003 /* SidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000003 /* SidebarView.swift */; };
+		A10000000000000000000004 /* MarkdownWebView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000004 /* MarkdownWebView.swift */; };
+		A1000000000000000000000F /* NativeMarkdownPreview.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000011 /* NativeMarkdownPreview.swift */; };
+		A10000000000000000000005 /* DocumentViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000005 /* DocumentViewModel.swift */; };
+		A10000000000000000000006 /* RecentFilesViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000006 /* RecentFilesViewModel.swift */; };
+		A10000000000000000000007 /* RecentFile.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000007 /* RecentFile.swift */; };
+		A10000000000000000000008 /* MarkdownRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000008 /* MarkdownRenderer.swift */; };
+		A10000000000000000000009 /* FileWatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000009 /* FileWatcher.swift */; };
+		A1000000000000000000000A /* github-markdown.css in Resources */ = {isa = PBXBuildFile; fileRef = A2000000000000000000000A /* github-markdown.css */; };
+		A1000000000000000000000B /* highlight-github.css in Resources */ = {isa = PBXBuildFile; fileRef = A2000000000000000000000B /* highlight-github.css */; };
+		A1000000000000000000000C /* highlight.min.js in Resources */ = {isa = PBXBuildFile; fileRef = A2000000000000000000000C /* highlight.min.js */; };
+		A1000000000000000000000D /* marked.min.js in Resources */ = {isa = PBXBuildFile; fileRef = A2000000000000000000000D /* marked.min.js */; };
+		A1000000000000000000000E /* mermaid.min.js in Resources */ = {isa = PBXBuildFile; fileRef = A2000000000000000000000E /* mermaid.min.js */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		A20000000000000000000001 /* MarkdownPreviewApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownPreviewApp.swift; sourceTree = "<group>"; };
+		A20000000000000000000002 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		A20000000000000000000003 /* SidebarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SidebarView.swift; sourceTree = "<group>"; };
+		A20000000000000000000004 /* MarkdownWebView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownWebView.swift; sourceTree = "<group>"; };
+		A20000000000000000000011 /* NativeMarkdownPreview.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeMarkdownPreview.swift; sourceTree = "<group>"; };
+		A20000000000000000000005 /* DocumentViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentViewModel.swift; sourceTree = "<group>"; };
+		A20000000000000000000006 /* RecentFilesViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecentFilesViewModel.swift; sourceTree = "<group>"; };
+		A20000000000000000000007 /* RecentFile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecentFile.swift; sourceTree = "<group>"; };
+		A20000000000000000000008 /* MarkdownRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownRenderer.swift; sourceTree = "<group>"; };
+		A20000000000000000000009 /* FileWatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileWatcher.swift; sourceTree = "<group>"; };
+		A2000000000000000000000A /* github-markdown.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = github-markdown.css; sourceTree = "<group>"; };
+		A2000000000000000000000B /* highlight-github.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = "highlight-github.css"; sourceTree = "<group>"; };
+		A2000000000000000000000C /* highlight.min.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = highlight.min.js; sourceTree = "<group>"; };
+		A2000000000000000000000D /* marked.min.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = marked.min.js; sourceTree = "<group>"; };
+		A2000000000000000000000E /* mermaid.min.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = mermaid.min.js; sourceTree = "<group>"; };
+		A2000000000000000000000F /* MarkdownPreview.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MarkdownPreview.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A20000000000000000000010 /* MarkdownPreview.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = MarkdownPreview.entitlements; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		A30000000000000000000001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		A40000000000000000000001 = {
+			isa = PBXGroup;
+			children = (
+				A40000000000000000000002 /* MarkdownPreview */,
+				A40000000000000000000003 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		A40000000000000000000002 /* MarkdownPreview */ = {
+			isa = PBXGroup;
+			children = (
+				A40000000000000000000004 /* App */,
+				A40000000000000000000005 /* Views */,
+				A40000000000000000000006 /* ViewModels */,
+				A40000000000000000000007 /* Models */,
+				A40000000000000000000008 /* Services */,
+				A40000000000000000000009 /* Resources */,
+				A20000000000000000000010 /* MarkdownPreview.entitlements */,
+			);
+			path = "";
+			sourceTree = "<group>";
+		};
+		A40000000000000000000003 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				A2000000000000000000000F /* MarkdownPreview.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		A40000000000000000000004 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				A20000000000000000000001 /* MarkdownPreviewApp.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		A40000000000000000000005 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				A20000000000000000000002 /* ContentView.swift */,
+				A20000000000000000000003 /* SidebarView.swift */,
+				A20000000000000000000004 /* MarkdownWebView.swift */,
+				A20000000000000000000011 /* NativeMarkdownPreview.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		A40000000000000000000006 /* ViewModels */ = {
+			isa = PBXGroup;
+			children = (
+				A20000000000000000000005 /* DocumentViewModel.swift */,
+				A20000000000000000000006 /* RecentFilesViewModel.swift */,
+			);
+			path = ViewModels;
+			sourceTree = "<group>";
+		};
+		A40000000000000000000007 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				A20000000000000000000007 /* RecentFile.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		A40000000000000000000008 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				A20000000000000000000008 /* MarkdownRenderer.swift */,
+				A20000000000000000000009 /* FileWatcher.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		A40000000000000000000009 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				A2000000000000000000000A /* github-markdown.css */,
+				A2000000000000000000000B /* highlight-github.css */,
+				A2000000000000000000000C /* highlight.min.js */,
+				A2000000000000000000000D /* marked.min.js */,
+				A2000000000000000000000E /* mermaid.min.js */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		A50000000000000000000001 /* MarkdownPreview */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A70000000000000000000002 /* Build configuration list for PBXNativeTarget "MarkdownPreview" */;
+			buildPhases = (
+				A30000000000000000000002 /* Sources */,
+				A30000000000000000000001 /* Frameworks */,
+				A30000000000000000000003 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = MarkdownPreview;
+			productName = MarkdownPreview;
+			productReference = A2000000000000000000000F /* MarkdownPreview.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		A60000000000000000000001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2640;
+				LastUpgradeCheck = 2640;
+				TargetAttributes = {
+					A50000000000000000000001 = {
+						CreatedOnToolsVersion = 26.4;
+					};
+				};
+			};
+			buildConfigurationList = A70000000000000000000001 /* Build configuration list for PBXProject "MarkdownPreview" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = A40000000000000000000001;
+			productRefGroup = A40000000000000000000003 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				A50000000000000000000001 /* MarkdownPreview */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		A30000000000000000000003 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A1000000000000000000000A /* github-markdown.css in Resources */,
+				A1000000000000000000000B /* highlight-github.css in Resources */,
+				A1000000000000000000000C /* highlight.min.js in Resources */,
+				A1000000000000000000000D /* marked.min.js in Resources */,
+				A1000000000000000000000E /* mermaid.min.js in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		A30000000000000000000002 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A10000000000000000000001 /* MarkdownPreviewApp.swift in Sources */,
+				A10000000000000000000002 /* ContentView.swift in Sources */,
+				A10000000000000000000003 /* SidebarView.swift in Sources */,
+				A10000000000000000000004 /* MarkdownWebView.swift in Sources */,
+				A1000000000000000000000F /* NativeMarkdownPreview.swift in Sources */,
+				A10000000000000000000005 /* DocumentViewModel.swift in Sources */,
+				A10000000000000000000006 /* RecentFilesViewModel.swift in Sources */,
+				A10000000000000000000007 /* RecentFile.swift in Sources */,
+				A10000000000000000000008 /* MarkdownRenderer.swift in Sources */,
+				A10000000000000000000009 /* FileWatcher.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		A80000000000000000000001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				SDKROOT = macosx;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		A80000000000000000000002 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		A80000000000000000000003 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = MarkdownPreview.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = MarkdownPreview;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.jeromecoloma.MarkdownPreview;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SUPPORTED_PLATFORMS = macosx;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		A80000000000000000000004 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = MarkdownPreview.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = MarkdownPreview;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.jeromecoloma.MarkdownPreview;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SUPPORTED_PLATFORMS = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		A70000000000000000000001 /* Build configuration list for PBXProject "MarkdownPreview" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A80000000000000000000001 /* Debug */,
+				A80000000000000000000002 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A70000000000000000000002 /* Build configuration list for PBXNativeTarget "MarkdownPreview" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A80000000000000000000003 /* Debug */,
+				A80000000000000000000004 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = A60000000000000000000001 /* Project object */;
+}
