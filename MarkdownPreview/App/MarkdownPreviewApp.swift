@@ -46,6 +46,7 @@ struct MarkdownPreviewApp: App {
         .defaultSize(width: 1280, height: 820)
         .windowResizability(.contentSize)
         .commands {
+            PreviewDocumentCommands(documentViewModel: documentViewModel)
             PreviewSearchCommands(previewSearchController: previewSearchController)
         }
     }
@@ -77,6 +78,22 @@ struct MarkdownPreviewApp: App {
             withAnimation(.easeInOut(duration: 0.22)) {
                 recentFilesViewModel.add(url: url)
             }
+        }
+    }
+}
+
+private struct PreviewDocumentCommands: Commands {
+    @ObservedObject var documentViewModel: DocumentViewModel
+
+    var body: some Commands {
+        CommandGroup(after: .saveItem) {
+            Button("Reload File") {
+                Task {
+                    await documentViewModel.reloadCurrentDocument()
+                }
+            }
+            .keyboardShortcut("r", modifiers: [.command])
+            .disabled(!documentViewModel.hasDocument)
         }
     }
 }
