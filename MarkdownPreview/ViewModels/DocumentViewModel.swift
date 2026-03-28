@@ -29,6 +29,10 @@ final class DocumentViewModel: ObservableObject {
         currentFileName ?? "MarkdownPreview"
     }
 
+    var isTextSearchAvailable: Bool {
+        hasDocument && !useNativeFallback
+    }
+
     private let renderer = MarkdownRenderer()
     private let fileWatcher = FileWatcher()
 

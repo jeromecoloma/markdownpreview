@@ -7,6 +7,8 @@ struct MarkdownWebView: NSViewRepresentable {
     let baseURL: URL?
     let fileURL: URL?
     let requestID: UUID
+    let isSearchAvailable: Bool
+    let searchController: PreviewSearchController
     let onFileDrop: @MainActor (URL) -> Void
     let onDropStateChanged: @MainActor (FileDropState) -> Void
     let isFileSupported: (URL) -> Bool
@@ -28,12 +30,15 @@ struct MarkdownWebView: NSViewRepresentable {
 
         let webView = DropReceivingWebView(frame: .zero, configuration: configuration)
         context.coordinator.isAttached = true
+        context.coordinator.searchController = searchController
         webView.navigationDelegate = context.coordinator
         webView.dropHandler = context.coordinator.handleDroppedFile
         webView.dropStateHandler = context.coordinator.updateDropState
         webView.fileValidator = isFileSupported
         webView.setValue(false, forKey: "drawsBackground")
         configureScrollViewIfNeeded(for: webView)
+        searchController.setSearchAvailable(isSearchAvailable)
+        searchController.register(webView: webView)
         return webView
     }
 
@@ -48,8 +53,11 @@ struct MarkdownWebView: NSViewRepresentable {
         context.coordinator.onDropStateChanged = onDropStateChanged
         context.coordinator.onDiagnostics = onDiagnostics
         context.coordinator.topContentInset = topContentInset
+        context.coordinator.searchController = searchController
         context.coordinator.isAttached = true
         configureScrollViewIfNeeded(for: webView)
+        searchController.setSearchAvailable(isSearchAvailable)
+        searchController.register(webView: webView)
 
         guard
             context.coordinator.lastHTML != html ||
@@ -86,6 +94,9 @@ struct MarkdownWebView: NSViewRepresentable {
             webView.dropStateHandler = nil
             webView.fileValidator = nil
         }
+
+        coordinator.searchController?.setSearchAvailable(false)
+        coordinator.searchController?.unregister(webView: webView)
     }
 
     private func configureScrollViewIfNeeded(for webView: WKWebView) {
@@ -116,6 +127,7 @@ struct MarkdownWebView: NSViewRepresentable {
         var onDropStateChanged: @MainActor (FileDropState) -> Void
         var onDiagnostics: @MainActor (String?) -> Void
         var topContentInset: CGFloat = 20
+        weak var searchController: PreviewSearchController?
         private var navigationRequestIDs: [ObjectIdentifier: UUID] = [:]
 
         init(

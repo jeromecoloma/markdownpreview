@@ -15,6 +15,7 @@ enum FileDropState {
 struct ContentView: View {
     @ObservedObject var documentViewModel: DocumentViewModel
     @ObservedObject var recentFilesViewModel: RecentFilesViewModel
+    @ObservedObject var previewSearchController: PreviewSearchController
 
     @State private var fileDropState: FileDropState = .idle
     @State private var invalidDropFeedbackToken = UUID()
@@ -39,6 +40,8 @@ struct ContentView: View {
                             baseURL: documentViewModel.baseURL,
                             fileURL: documentViewModel.renderedFileURL,
                             requestID: documentViewModel.previewRequestID,
+                            isSearchAvailable: documentViewModel.isTextSearchAvailable,
+                            searchController: previewSearchController,
                             onFileDrop: openDroppedFile,
                             onDropStateChanged: updateDropTargetedState,
                             isFileSupported: DocumentViewModel.isSupportedMarkdownFile(_:),
@@ -60,6 +63,16 @@ struct ContentView: View {
                     .overlay {
                         previewLoaderOverlay
                     }
+                    .overlay(alignment: .topTrailing) {
+                        if previewSearchController.isFindPresented,
+                           documentViewModel.hasDocument,
+                           !documentViewModel.useNativeFallback {
+                            PreviewFindBar(searchController: previewSearchController)
+                                .padding(.top, 18)
+                                .padding(.trailing, 18)
+                                .transition(.move(edge: .top).combined(with: .opacity))
+                        }
+                    }
                 } else {
                     emptyState
                 }
@@ -67,6 +80,12 @@ struct ContentView: View {
             .background(backgroundGradient)
         }
         .navigationTitle(documentViewModel.navigationTitle)
+        .onAppear {
+            previewSearchController.setSearchAvailable(documentViewModel.isTextSearchAvailable)
+        }
+        .onChange(of: documentViewModel.isTextSearchAvailable) { isAvailable in
+            previewSearchController.setSearchAvailable(isAvailable)
+        }
         .toolbar {
             ToolbarItemGroup {
                 Button("Open…", action: presentOpenPanel)
@@ -381,6 +400,120 @@ struct ContentView: View {
                 guard invalidDropFeedbackToken == token, fileDropState == .invalid else { return }
                 fileDropState = .idle
             }
+        }
+    }
+}
+
+private struct PreviewFindBar: View {
+    @ObservedObject var searchController: PreviewSearchController
+    @FocusState private var isSearchFieldFocused: Bool
+
+    private var canNavigateMatches: Bool {
+        searchController.hasMatches
+    }
+
+    private var searchResultSummary: String? {
+        guard searchController.totalMatches > 0 else {
+            return nil
+        }
+
+        return "\(searchController.currentMatchIndex) of \(searchController.totalMatches)"
+    }
+
+    private var searchBinding: Binding<String> {
+        Binding(
+            get: { searchController.searchQuery },
+            set: { searchController.updateSearchQuery($0) }
+        )
+    }
+
+    private var hasSearchText: Bool {
+        !searchController.searchQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    private var statusText: String? {
+        if let summary = searchResultSummary {
+            return summary
+        }
+
+        return searchController.searchStatusMessage
+    }
+
+    var body: some View {
+        VStack(alignment: .trailing, spacing: 6) {
+            HStack(spacing: 10) {
+                Image(systemName: "magnifyingglass")
+                    .foregroundStyle(.secondary)
+
+                TextField("Find in document", text: searchBinding)
+                    .textFieldStyle(.plain)
+                    .frame(width: 220)
+                    .focused($isSearchFieldFocused)
+                    .onSubmit {
+                        searchController.findNext()
+                    }
+
+                Button {
+                    searchController.findPrevious()
+                } label: {
+                    Image(systemName: "chevron.up")
+                }
+                .buttonStyle(.borderless)
+                .foregroundStyle(canNavigateMatches ? Color.accentColor : .secondary)
+                .help("Find Previous")
+
+                Button {
+                    searchController.findNext()
+                } label: {
+                    Image(systemName: "chevron.down")
+                }
+                .buttonStyle(.borderless)
+                .foregroundStyle(canNavigateMatches ? Color.accentColor : .secondary)
+                .help("Find Next")
+
+                Divider()
+                    .frame(height: 16)
+
+                Button {
+                    searchController.hideFindInterface()
+                } label: {
+                    Image(systemName: "xmark")
+                }
+                .buttonStyle(.borderless)
+                .help("Close Find")
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+            .background(.regularMaterial, in: Capsule())
+            .overlay {
+                Capsule()
+                    .strokeBorder(Color.primary.opacity(0.08), lineWidth: 1)
+            }
+            .shadow(color: Color.black.opacity(0.12), radius: 16, y: 8)
+
+            if hasSearchText, let statusText {
+                Text(statusText)
+                    .font(searchResultSummary == nil ? .caption : .caption.monospacedDigit())
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(.regularMaterial, in: Capsule())
+                    .overlay {
+                        Capsule()
+                            .strokeBorder(Color.primary.opacity(0.08), lineWidth: 1)
+                    }
+                    .shadow(color: Color.black.opacity(0.10), radius: 12, y: 6)
+            }
+        }
+        .onAppear {
+            isSearchFieldFocused = true
+        }
+        .onChange(of: searchController.searchFieldFocusToken) { _ in
+            isSearchFieldFocused = true
+        }
+        .onExitCommand {
+            searchController.hideFindInterface()
         }
     }
 }

@@ -17,6 +17,7 @@
 		A10000000000000000000007 /* RecentFile.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000007 /* RecentFile.swift */; };
 		A10000000000000000000008 /* MarkdownRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000008 /* MarkdownRenderer.swift */; };
 		A10000000000000000000009 /* FileWatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000009 /* FileWatcher.swift */; };
+		A10000000000000000000014 /* PreviewSearchController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000014 /* PreviewSearchController.swift */; };
 		A1000000000000000000000A /* github-markdown.css in Resources */ = {isa = PBXBuildFile; fileRef = A2000000000000000000000A /* github-markdown.css */; };
 		A1000000000000000000000B /* highlight-github.css in Resources */ = {isa = PBXBuildFile; fileRef = A2000000000000000000000B /* highlight-github.css */; };
 		A1000000000000000000000C /* highlight.min.js in Resources */ = {isa = PBXBuildFile; fileRef = A2000000000000000000000C /* highlight.min.js */; };
@@ -36,6 +37,7 @@
 		A20000000000000000000007 /* RecentFile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecentFile.swift; sourceTree = "<group>"; };
 		A20000000000000000000008 /* MarkdownRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownRenderer.swift; sourceTree = "<group>"; };
 		A20000000000000000000009 /* FileWatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileWatcher.swift; sourceTree = "<group>"; };
+		A20000000000000000000014 /* PreviewSearchController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreviewSearchController.swift; sourceTree = "<group>"; };
 		A2000000000000000000000A /* github-markdown.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = github-markdown.css; sourceTree = "<group>"; };
 		A2000000000000000000000B /* highlight-github.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = "highlight-github.css"; sourceTree = "<group>"; };
 		A2000000000000000000000C /* highlight.min.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = highlight.min.js; sourceTree = "<group>"; };
@@ -153,6 +155,7 @@
 			children = (
 				A20000000000000000000008 /* MarkdownRenderer.swift */,
 				A20000000000000000000009 /* FileWatcher.swift */,
+				A20000000000000000000014 /* PreviewSearchController.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -255,6 +258,7 @@
 				A10000000000000000000007 /* RecentFile.swift in Sources */,
 				A10000000000000000000008 /* MarkdownRenderer.swift in Sources */,
 				A10000000000000000000009 /* FileWatcher.swift in Sources */,
+				A10000000000000000000014 /* PreviewSearchController.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
