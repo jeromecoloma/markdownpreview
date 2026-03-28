@@ -27,6 +27,7 @@ struct MarkdownWebView: NSViewRepresentable {
         configuration.defaultWebpagePreferences.allowsContentJavaScript = true
 
         let webView = DropReceivingWebView(frame: .zero, configuration: configuration)
+        context.coordinator.isAttached = true
         webView.navigationDelegate = context.coordinator
         webView.dropHandler = context.coordinator.handleDroppedFile
         webView.dropStateHandler = context.coordinator.updateDropState
@@ -47,6 +48,7 @@ struct MarkdownWebView: NSViewRepresentable {
         context.coordinator.onDropStateChanged = onDropStateChanged
         context.coordinator.onDiagnostics = onDiagnostics
         context.coordinator.topContentInset = topContentInset
+        context.coordinator.isAttached = true
         configureScrollViewIfNeeded(for: webView)
 
         guard
@@ -62,12 +64,27 @@ struct MarkdownWebView: NSViewRepresentable {
         context.coordinator.lastBaseURL = baseURL
         context.coordinator.lastFileURL = fileURL
         context.coordinator.lastRequestID = requestID
-        context.coordinator.report("Loading preview…")
+        context.coordinator.report("Loading preview…", requestID: requestID)
 
+        let navigation: WKNavigation?
         if let fileURL {
-            webView.loadFileURL(fileURL, allowingReadAccessTo: fileURL.deletingLastPathComponent())
+            navigation = webView.loadFileURL(fileURL, allowingReadAccessTo: fileURL.deletingLastPathComponent())
         } else {
-            webView.loadHTMLString(html, baseURL: baseURL)
+            navigation = webView.loadHTMLString(html, baseURL: baseURL)
+        }
+
+        context.coordinator.beginNavigation(navigation, requestID: requestID)
+    }
+
+    static func dismantleNSView(_ webView: WKWebView, coordinator: Coordinator) {
+        coordinator.isAttached = false
+        webView.navigationDelegate = nil
+        webView.stopLoading()
+
+        if let webView = webView as? DropReceivingWebView {
+            webView.dropHandler = nil
+            webView.dropStateHandler = nil
+            webView.fileValidator = nil
         }
     }
 
@@ -93,10 +110,13 @@ struct MarkdownWebView: NSViewRepresentable {
         var lastBaseURL: URL?
         var lastFileURL: URL?
         var lastRequestID = UUID()
+        var activeRequestID = UUID()
+        var isAttached = true
         var onFileDrop: @MainActor (URL) -> Void
         var onDropStateChanged: @MainActor (FileDropState) -> Void
         var onDiagnostics: @MainActor (String?) -> Void
         var topContentInset: CGFloat = 20
+        private var navigationRequestIDs: [ObjectIdentifier: UUID] = [:]
 
         init(
             onFileDrop: @escaping @MainActor (URL) -> Void,
@@ -106,6 +126,14 @@ struct MarkdownWebView: NSViewRepresentable {
             self.onFileDrop = onFileDrop
             self.onDropStateChanged = onDropStateChanged
             self.onDiagnostics = onDiagnostics
+        }
+
+        func beginNavigation(_ navigation: WKNavigation?, requestID: UUID) {
+            activeRequestID = requestID
+
+            if let navigation {
+                navigationRequestIDs[ObjectIdentifier(navigation)] = requestID
+            }
         }
 
         func handleDroppedFile(_ url: URL) {
@@ -121,28 +149,48 @@ struct MarkdownWebView: NSViewRepresentable {
         }
 
         func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) {
-            report("Starting web preview…")
+            report("Starting web preview…", for: navigation)
         }
 
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-            resetScrollPosition(in: webView)
+            resetScrollPosition(in: webView, navigation: navigation)
         }
 
         func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
-            report("Navigation failed: \(error.localizedDescription)")
+            report("Navigation failed: \(error.localizedDescription)", for: navigation)
         }
 
         func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
-            report("Preview failed to start: \(error.localizedDescription)")
+            report("Preview failed to start: \(error.localizedDescription)", for: navigation)
         }
 
-        func report(_ message: String?) {
+        func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
+            report("Web preview failed because the web content process terminated.", requestID: activeRequestID)
+        }
+
+        func report(_ message: String?, for navigation: WKNavigation?) {
+            report(message, requestID: requestID(for: navigation))
+        }
+
+        func report(_ message: String?, requestID: UUID? = nil) {
+            guard isAttached else {
+                return
+            }
+
+            guard requestID == nil || requestID == activeRequestID else {
+                return
+            }
+
             Task { @MainActor in
                 onDiagnostics(message)
             }
         }
 
-        private func resetScrollPosition(in webView: WKWebView) {
+        private func resetScrollPosition(in webView: WKWebView, navigation: WKNavigation?) {
+            guard requestID(for: navigation) == activeRequestID else {
+                return
+            }
+
             if let scrollView = webView.enclosingScrollView {
                 let point = NSPoint(x: 0, y: -topContentInset)
                 scrollView.contentView.scroll(to: point)
@@ -157,17 +205,26 @@ struct MarkdownWebView: NSViewRepresentable {
                 scrollingElement.scrollLeft = 0;
               }
               window.scrollTo(0, 0);
-              return document.getElementById('markdown-root')?.innerText?.trim()?.slice(0, 120) ?? '';
+              return !!document.getElementById('markdown-root');
             })();
             """
 
+            let requestID = activeRequestID
             webView.evaluateJavaScript(script) { [weak self] result, _ in
-                if let text = result as? String, !text.isEmpty {
-                    self?.report(nil)
+                guard let self else { return }
+                guard requestID == self.activeRequestID else { return }
+
+                if let hasMarkdownRoot = result as? Bool, hasMarkdownRoot {
+                    self.report(nil, requestID: requestID)
                 } else {
-                    self?.report("Preview loaded, but no rendered content was detected.")
+                    self.report("Preview loaded, but the rendered document container was missing.", requestID: requestID)
                 }
             }
+        }
+
+        private func requestID(for navigation: WKNavigation?) -> UUID? {
+            guard let navigation else { return activeRequestID }
+            return navigationRequestIDs[ObjectIdentifier(navigation)] ?? activeRequestID
         }
 
         func webView(

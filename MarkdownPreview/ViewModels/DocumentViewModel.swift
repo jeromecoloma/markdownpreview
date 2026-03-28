@@ -110,7 +110,7 @@ final class DocumentViewModel: ObservableObject {
         }
 
         let normalized = message?.lowercased() ?? ""
-        if normalized.contains("failed") || normalized.contains("error") || normalized.contains("timed out") {
+        if normalized.contains("failed") || normalized.contains("error") || normalized.contains("terminated") {
             previewTimeoutTask?.cancel()
             previewTimeoutTask = nil
             useNativeFallback = true
@@ -150,15 +150,14 @@ final class DocumentViewModel: ObservableObject {
     private func startPreviewAttempt() {
         previewTimeoutTask?.cancel()
         previewRequestID = UUID()
-        previewDiagnostics = "Loading preview…"
+        previewDiagnostics = "Preparing web preview…"
         useNativeFallback = false
 
         previewTimeoutTask = Task { [weak self] in
             try? await Task.sleep(for: .seconds(2))
             guard let self, !Task.isCancelled else { return }
             guard self.previewDiagnostics != nil else { return }
-            self.useNativeFallback = true
-            self.previewDiagnostics = "Web preview timed out; using native fallback."
+            self.previewDiagnostics = "Rendering your preview. Large Markdown files can take a moment."
         }
     }
 

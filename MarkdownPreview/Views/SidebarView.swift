@@ -3,11 +3,13 @@ import SwiftUI
 struct SidebarView: View {
     @ObservedObject var recentFilesViewModel: RecentFilesViewModel
     let currentFileURL: URL?
+    let isLoading: Bool
     let openPanel: () -> Void
     let openRecent: (RecentFile) -> Void
     let removeRecent: (RecentFile) -> Void
 
     @State private var hoveredItemID: String?
+    @State private var openingItemID: String?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
@@ -33,23 +35,21 @@ struct SidebarView: View {
             } else {
                 ScrollViewReader { proxy in
                     List(recentFilesViewModel.recentFiles) { item in
-                        HStack(spacing: 8) {
+                        ZStack(alignment: .trailing) {
                             Button {
+                                openingItemID = item.id
                                 openRecent(item)
                             } label: {
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(item.fileName)
-                                        .font(.body.weight(.medium))
-                                        .foregroundStyle(.primary)
-                                    Text(item.parentDirectory)
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                        .lineLimit(1)
-                                }
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .padding(.vertical, 6)
+                                rowLabel(for: item)
                             }
-                            .buttonStyle(.plain)
+                            .buttonStyle(
+                                SidebarRecentFileButtonStyle(
+                                    isSelected: isSelected(item),
+                                    isHovered: hoveredItemID == item.id,
+                                    isOpening: openingItemID == item.id && isLoading
+                                )
+                            )
+                            .contentShape(Rectangle())
 
                             removeButton(for: item)
                         }
@@ -66,11 +66,7 @@ struct SidebarView: View {
                                 Label("Remove from Recent Files", systemImage: "trash")
                             }
                         }
-                        .listRowBackground(
-                            RoundedRectangle(cornerRadius: 10)
-                                .fill(backgroundColor(for: item))
-                                .padding(.vertical, 2)
-                        )
+                        .listRowBackground(Color.clear)
                     }
                     .listStyle(.sidebar)
                     .onAppear {
@@ -98,6 +94,11 @@ struct SidebarView: View {
             .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
         }
         .padding(20)
+        .onChange(of: isLoading) { loading in
+            if !loading {
+                openingItemID = nil
+            }
+        }
     }
 
     private func isSelected(_ item: RecentFile) -> Bool {
@@ -118,21 +119,39 @@ struct SidebarView: View {
         }
     }
 
-    private func backgroundColor(for item: RecentFile) -> Color {
-        if isSelected(item) {
-            return Color.accentColor.opacity(0.14)
-        }
+    @ViewBuilder
+    private func rowLabel(for item: RecentFile) -> some View {
+        HStack(spacing: 10) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(item.fileName)
+                    .font(.body.weight(.medium))
+                    .foregroundStyle(.primary)
+                Text(item.parentDirectory)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
 
-        if hoveredItemID == item.id {
-            return Color.primary.opacity(0.07)
-        }
+            Spacer(minLength: 0)
 
-        return .clear
+            if openingItemID == item.id && isLoading {
+                ProgressView()
+                    .controlSize(.small)
+                    .tint(.accentColor)
+            } else if isSelected(item) {
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.system(size: 14))
+                    .foregroundStyle(Color.accentColor)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
     }
 
     @ViewBuilder
     private func removeButton(for item: RecentFile) -> some View {
-        let isVisible = hoveredItemID == item.id
+        let isVisible = hoveredItemID == item.id && openingItemID != item.id
 
         Button {
             removeRecent(item)
@@ -143,7 +162,65 @@ struct SidebarView: View {
         }
         .buttonStyle(.borderless)
         .help("Remove from Recent Files")
+        .padding(.trailing, 12)
         .opacity(isVisible ? 1 : 0)
+        .allowsHitTesting(isVisible)
         .accessibilityHidden(!isVisible)
+    }
+}
+
+private struct SidebarRecentFileButtonStyle: ButtonStyle {
+    let isSelected: Bool
+    let isHovered: Bool
+    let isOpening: Bool
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .background(backgroundColor(isPressed: configuration.isPressed), in: RoundedRectangle(cornerRadius: 10))
+            .overlay {
+                RoundedRectangle(cornerRadius: 10)
+                    .strokeBorder(borderColor(isPressed: configuration.isPressed), lineWidth: borderWidth(isPressed: configuration.isPressed))
+            }
+            .scaleEffect(configuration.isPressed ? 0.992 : 1)
+            .animation(.easeInOut(duration: 0.12), value: configuration.isPressed)
+            .animation(.easeInOut(duration: 0.16), value: isHovered)
+            .animation(.easeInOut(duration: 0.16), value: isSelected)
+            .animation(.easeInOut(duration: 0.16), value: isOpening)
+    }
+
+    private func backgroundColor(isPressed: Bool) -> Color {
+        if isPressed {
+            return Color.accentColor.opacity(0.22)
+        }
+
+        if isOpening {
+            return Color.accentColor.opacity(0.18)
+        }
+
+        if isSelected {
+            return Color.accentColor.opacity(0.14)
+        }
+
+        if isHovered {
+            return Color.primary.opacity(0.07)
+        }
+
+        return .clear
+    }
+
+    private func borderColor(isPressed: Bool) -> Color {
+        if isPressed || isOpening {
+            return Color.accentColor.opacity(0.55)
+        }
+
+        if isSelected {
+            return Color.accentColor.opacity(0.28)
+        }
+
+        return .clear
+    }
+
+    private func borderWidth(isPressed: Bool) -> CGFloat {
+        (isPressed || isOpening || isSelected) ? 1 : 0
     }
 }

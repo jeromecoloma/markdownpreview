@@ -24,6 +24,7 @@ struct ContentView: View {
             SidebarView(
                 recentFilesViewModel: recentFilesViewModel,
                 currentFileURL: documentViewModel.currentFileURL,
+                isLoading: documentViewModel.isLoading,
                 openPanel: presentOpenPanel,
                 openRecent: openRecentFile,
                 removeRecent: removeRecentFile
@@ -32,15 +33,7 @@ struct ContentView: View {
         } detail: {
             Group {
                 if documentViewModel.hasDocument {
-                    if documentViewModel.useNativeFallback {
-                        NativeMarkdownPreview(markdown: documentViewModel.rawMarkdown)
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                            .onDrop(
-                                of: [UTType.fileURL.identifier],
-                                isTargeted: dropTargetBinding,
-                                perform: handleDrop(providers:)
-                            )
-                    } else {
+                    ZStack {
                         MarkdownWebView(
                             html: documentViewModel.renderedHTML,
                             baseURL: documentViewModel.baseURL,
@@ -54,15 +47,24 @@ struct ContentView: View {
                             }
                         )
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .opacity(documentViewModel.useNativeFallback ? 0.001 : 1)
+                        .allowsHitTesting(!documentViewModel.useNativeFallback)
+                        .accessibilityHidden(documentViewModel.useNativeFallback)
+
+                        if documentViewModel.useNativeFallback {
+                            NativeMarkdownPreview(markdown: documentViewModel.rawMarkdown)
+                                .transition(.opacity)
+                        }
+                    }
+                    .animation(.easeInOut(duration: 0.18), value: documentViewModel.useNativeFallback)
+                    .overlay {
+                        previewLoaderOverlay
                     }
                 } else {
                     emptyState
                 }
             }
             .background(backgroundGradient)
-            .overlay(alignment: .bottomLeading) {
-                previewDiagnosticsOverlay
-            }
         }
         .navigationTitle(documentViewModel.navigationTitle)
         .toolbar {
@@ -141,16 +143,57 @@ struct ContentView: View {
     }
 
     @ViewBuilder
-    private var previewDiagnosticsOverlay: some View {
-        if let message = documentViewModel.previewDiagnostics, documentViewModel.hasDocument {
-            Text(message)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
-                .background(.regularMaterial, in: Capsule())
-                .padding(16)
+    private var previewLoaderOverlay: some View {
+        if let message = documentViewModel.previewDiagnostics,
+           documentViewModel.hasDocument,
+           !documentViewModel.useNativeFallback {
+            VStack(spacing: 18) {
+                ZStack {
+                    Circle()
+                        .fill(Color.accentColor.opacity(0.12))
+                        .frame(width: 72, height: 72)
+
+                    Circle()
+                        .strokeBorder(Color.accentColor.opacity(0.18), lineWidth: 1)
+                        .frame(width: 72, height: 72)
+
+                    ProgressView()
+                        .controlSize(.large)
+                        .tint(.accentColor)
+                }
+
+                VStack(spacing: 6) {
+                    Text(previewLoaderTitle)
+                        .font(.headline.weight(.semibold))
+                    Text(message)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .frame(maxWidth: 280)
+                }
+            }
+            .padding(.horizontal, 28)
+            .padding(.vertical, 24)
+            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 24))
+            .overlay {
+                RoundedRectangle(cornerRadius: 24)
+                    .strokeBorder(Color.accentColor.opacity(0.12), lineWidth: 1)
+            }
+            .shadow(color: Color.black.opacity(0.08), radius: 22, y: 10)
+            .transition(.opacity.combined(with: .scale(scale: 0.96)))
         }
+    }
+
+    private var previewLoaderTitle: String {
+        guard let message = documentViewModel.previewDiagnostics?.lowercased() else {
+            return "Preparing Preview"
+        }
+
+        if message.contains("rendering") {
+            return "Rendering Preview"
+        }
+
+        return "Preparing Preview"
     }
 
     @ViewBuilder
