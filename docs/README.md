@@ -15,3 +15,5 @@ Minimal native macOS Markdown reader built with SwiftUI and `WKWebView`.
 ```bash
 ./scripts/build.sh
 ```
+
+The app icon is generated from the SVG source at `_assets/logo/MarkdownPreview_Icon.svg` during the Xcode build and bundled as `AppIcon.icns`.

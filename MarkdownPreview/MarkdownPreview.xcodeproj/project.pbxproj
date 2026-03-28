@@ -22,6 +22,7 @@
 		A1000000000000000000000C /* highlight.min.js in Resources */ = {isa = PBXBuildFile; fileRef = A2000000000000000000000C /* highlight.min.js */; };
 		A1000000000000000000000D /* marked.min.js in Resources */ = {isa = PBXBuildFile; fileRef = A2000000000000000000000D /* marked.min.js */; };
 		A1000000000000000000000E /* mermaid.min.js in Resources */ = {isa = PBXBuildFile; fileRef = A2000000000000000000000E /* mermaid.min.js */; };
+		A10000000000000000000010 /* AppIcon.icns in Resources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000012 /* AppIcon.icns */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -42,6 +43,8 @@
 		A2000000000000000000000E /* mermaid.min.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = mermaid.min.js; sourceTree = "<group>"; };
 		A2000000000000000000000F /* MarkdownPreview.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MarkdownPreview.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A20000000000000000000010 /* MarkdownPreview.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = MarkdownPreview.entitlements; sourceTree = "<group>"; };
+		A20000000000000000000012 /* AppIcon.icns */ = {isa = PBXFileReference; explicitFileType = image.icns; path = AppIcon.icns; sourceTree = "<group>"; };
+		A20000000000000000000013 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -53,6 +56,29 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		A30000000000000000000004 /* Generate App Icon */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/../_assets/logo/MarkdownPreview_Icon.svg",
+			);
+			name = "Generate App Icon";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(SRCROOT)/Resources/AppIcon.icns",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/zsh;
+			shellScript = "\"$SRCROOT/../scripts/generate_app_icon.sh\"\n";
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXGroup section */
 		A40000000000000000000001 = {
@@ -88,6 +114,7 @@
 		A40000000000000000000004 /* App */ = {
 			isa = PBXGroup;
 			children = (
+				A20000000000000000000013 /* Info.plist */,
 				A20000000000000000000001 /* MarkdownPreviewApp.swift */,
 			);
 			path = App;
@@ -133,6 +160,7 @@
 		A40000000000000000000009 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				A20000000000000000000012 /* AppIcon.icns */,
 				A2000000000000000000000A /* github-markdown.css */,
 				A2000000000000000000000B /* highlight-github.css */,
 				A2000000000000000000000C /* highlight.min.js */,
@@ -151,6 +179,7 @@
 			buildPhases = (
 				A30000000000000000000002 /* Sources */,
 				A30000000000000000000001 /* Frameworks */,
+				A30000000000000000000004 /* Generate App Icon */,
 				A30000000000000000000003 /* Resources */,
 			);
 			buildRules = (
@@ -200,6 +229,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A10000000000000000000010 /* AppIcon.icns in Resources */,
 				A1000000000000000000000A /* github-markdown.css in Resources */,
 				A1000000000000000000000B /* highlight-github.css in Resources */,
 				A1000000000000000000000C /* highlight.min.js in Resources */,
@@ -267,9 +297,8 @@
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = MarkdownPreview;
-				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = App/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
@@ -293,9 +322,8 @@
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = MarkdownPreview;
-				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = App/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
