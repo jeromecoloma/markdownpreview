@@ -2,11 +2,22 @@ import AppKit
 import SwiftUI
 import UniformTypeIdentifiers
 
+enum FileDropState {
+    case idle
+    case valid
+    case invalid
+
+    var isVisible: Bool {
+        self != .idle
+    }
+}
+
 struct ContentView: View {
     @ObservedObject var documentViewModel: DocumentViewModel
     @ObservedObject var recentFilesViewModel: RecentFilesViewModel
 
-    @State private var isDropTargeted = false
+    @State private var fileDropState: FileDropState = .idle
+    @State private var invalidDropFeedbackToken = UUID()
 
     var body: some View {
         NavigationSplitView {
@@ -25,7 +36,7 @@ struct ContentView: View {
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
                             .onDrop(
                                 of: [UTType.fileURL.identifier],
-                                isTargeted: $isDropTargeted,
+                                isTargeted: dropTargetBinding,
                                 perform: handleDrop(providers:)
                             )
                     } else {
@@ -35,7 +46,8 @@ struct ContentView: View {
                             fileURL: documentViewModel.renderedFileURL,
                             requestID: documentViewModel.previewRequestID,
                             onFileDrop: openDroppedFile,
-                            onDropTargetedChanged: updateDropTargetedState,
+                            onDropStateChanged: updateDropTargetedState,
+                            isFileSupported: DocumentViewModel.isSupportedMarkdownFile(_:),
                             onDiagnostics: { message in
                                 documentViewModel.updatePreviewDiagnostics(message)
                             }
@@ -68,7 +80,7 @@ struct ContentView: View {
         .overlay(alignment: .center) {
             dropOverlay
         }
-        .onDrop(of: [UTType.fileURL.identifier], isTargeted: $isDropTargeted, perform: handleDrop(providers:))
+        .onDrop(of: [UTType.fileURL.identifier], isTargeted: dropTargetBinding, perform: handleDrop(providers:))
         .alert(
             "Couldn’t Open File",
             isPresented: Binding(
@@ -100,14 +112,14 @@ struct ContentView: View {
                 Text("Preview Markdown instantly")
                     .font(.system(size: 30, weight: .semibold, design: .rounded))
 
-                Text("Open or drop a Markdown file to render GitHub-flavored content, Mermaid diagrams, and highlighted code.")
+                Text("Open or drop a `.md` file to render GitHub-flavored content, Mermaid diagrams, and highlighted code.")
                     .font(.title3)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
                     .frame(maxWidth: 640)
             }
 
-            Button("Choose Markdown File…", action: presentOpenPanel)
+            Button("Choose .md File…", action: presentOpenPanel)
                 .buttonStyle(.borderedProminent)
                 .controlSize(.large)
         }
@@ -142,10 +154,10 @@ struct ContentView: View {
 
     @ViewBuilder
     private var dropOverlay: some View {
-        if isDropTargeted {
+        if fileDropState.isVisible {
             RoundedRectangle(cornerRadius: 28)
                 .strokeBorder(style: StrokeStyle(lineWidth: 3, dash: [10, 10]))
-                .foregroundStyle(Color.accentColor)
+                .foregroundStyle(dropOverlayBorderColor)
                 .padding(24)
                 .overlay {
                     dropOverlayCard
@@ -156,10 +168,14 @@ struct ContentView: View {
 
     private var dropOverlayCard: some View {
         VStack(spacing: 10) {
-            Image(systemName: "doc.badge.plus")
+            Image(systemName: dropOverlayIconName)
                 .font(.system(size: 42))
-            Text("Drop Markdown to Preview")
+            Text(dropOverlayTitle)
                 .font(.title3.weight(.semibold))
+            Text(dropOverlayMessage)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
         }
         .padding(28)
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 20))
@@ -187,6 +203,11 @@ struct ContentView: View {
     }
 
     private func openFile(_ url: URL) {
+        guard DocumentViewModel.isSupportedMarkdownFile(url) else {
+            rejectFile(url)
+            return
+        }
+
         Task {
             let opened = await documentViewModel.open(url: url)
             if opened {
@@ -201,13 +222,13 @@ struct ContentView: View {
 
     @MainActor
     private func openDroppedFile(_ url: URL) {
-        isDropTargeted = false
+        fileDropState = .idle
         openFile(url)
     }
 
     @MainActor
-    private func updateDropTargetedState(_ isTargeted: Bool) {
-        self.isDropTargeted = isTargeted
+    private func updateDropTargetedState(_ state: FileDropState) {
+        fileDropState = state
     }
 
     private func handleDrop(providers: [NSItemProvider]) -> Bool {
@@ -222,7 +243,11 @@ struct ContentView: View {
                     }
 
                     Task { @MainActor in
-                        openDroppedFile(url)
+                        if DocumentViewModel.isSupportedMarkdownFile(url) {
+                            openDroppedFile(url)
+                        } else {
+                            rejectFile(url)
+                        }
                     }
                 }
                 return true
@@ -233,17 +258,79 @@ struct ContentView: View {
     }
 
     private var markdownTypes: [UTType] {
-        var types: [UTType] = []
+        UTType(filenameExtension: DocumentViewModel.supportedFileExtension).map { [$0] } ?? []
+    }
 
-        if let markdown = UTType(filenameExtension: "md") {
-            types.append(markdown)
+    private var dropTargetBinding: Binding<Bool> {
+        Binding(
+            get: { fileDropState == .valid },
+            set: { isTargeted in
+                if isTargeted {
+                    fileDropState = .valid
+                } else if fileDropState == .valid {
+                    fileDropState = .idle
+                }
+            }
+        )
+    }
+
+    private var dropOverlayBorderColor: Color {
+        switch fileDropState {
+        case .valid:
+            return Color.accentColor
+        case .invalid:
+            return Color.red
+        case .idle:
+            return .clear
         }
+    }
 
-        if let markdownLong = UTType(filenameExtension: "markdown") {
-            types.append(markdownLong)
+    private var dropOverlayIconName: String {
+        switch fileDropState {
+        case .valid:
+            return "doc.badge.plus"
+        case .invalid:
+            return "nosign"
+        case .idle:
+            return "doc"
         }
+    }
 
-        types.append(.plainText)
-        return types
+    private var dropOverlayTitle: String {
+        switch fileDropState {
+        case .valid:
+            return "Drop .md File to Preview"
+        case .invalid:
+            return "This File Isn’t Allowed"
+        case .idle:
+            return ""
+        }
+    }
+
+    private var dropOverlayMessage: String {
+        switch fileDropState {
+        case .valid:
+            return "MarkdownPreview only accepts Markdown files with the .md extension."
+        case .invalid:
+            return "Only .md files can be opened here."
+        case .idle:
+            return ""
+        }
+    }
+
+    @MainActor
+    private func rejectFile(_ url: URL) {
+        invalidDropFeedbackToken = UUID()
+        let token = invalidDropFeedbackToken
+        fileDropState = .invalid
+        documentViewModel.presentedError = .init(message: DocumentViewModel.unsupportedFileMessage(for: url))
+
+        Task {
+            try? await Task.sleep(for: .seconds(1.2))
+            await MainActor.run {
+                guard invalidDropFeedbackToken == token, fileDropState == .invalid else { return }
+                fileDropState = .idle
+            }
+        }
     }
 }

@@ -8,7 +8,8 @@ struct MarkdownWebView: NSViewRepresentable {
     let fileURL: URL?
     let requestID: UUID
     let onFileDrop: @MainActor (URL) -> Void
-    let onDropTargetedChanged: @MainActor (Bool) -> Void
+    let onDropStateChanged: @MainActor (FileDropState) -> Void
+    let isFileSupported: (URL) -> Bool
     let onDiagnostics: @MainActor (String?) -> Void
 
     private let topContentInset: CGFloat = 20
@@ -16,7 +17,7 @@ struct MarkdownWebView: NSViewRepresentable {
     func makeCoordinator() -> Coordinator {
         Coordinator(
             onFileDrop: onFileDrop,
-            onDropTargetedChanged: onDropTargetedChanged,
+            onDropStateChanged: onDropStateChanged,
             onDiagnostics: onDiagnostics
         )
     }
@@ -28,7 +29,8 @@ struct MarkdownWebView: NSViewRepresentable {
         let webView = DropReceivingWebView(frame: .zero, configuration: configuration)
         webView.navigationDelegate = context.coordinator
         webView.dropHandler = context.coordinator.handleDroppedFile
-        webView.dropTargetStateHandler = context.coordinator.updateDropTargeted
+        webView.dropStateHandler = context.coordinator.updateDropState
+        webView.fileValidator = isFileSupported
         webView.setValue(false, forKey: "drawsBackground")
         configureScrollViewIfNeeded(for: webView)
         return webView
@@ -37,11 +39,12 @@ struct MarkdownWebView: NSViewRepresentable {
     func updateNSView(_ webView: WKWebView, context: Context) {
         if let webView = webView as? DropReceivingWebView {
             webView.dropHandler = context.coordinator.handleDroppedFile
-            webView.dropTargetStateHandler = context.coordinator.updateDropTargeted
+            webView.dropStateHandler = context.coordinator.updateDropState
+            webView.fileValidator = isFileSupported
         }
 
         context.coordinator.onFileDrop = onFileDrop
-        context.coordinator.onDropTargetedChanged = onDropTargetedChanged
+        context.coordinator.onDropStateChanged = onDropStateChanged
         context.coordinator.onDiagnostics = onDiagnostics
         context.coordinator.topContentInset = topContentInset
         configureScrollViewIfNeeded(for: webView)
@@ -91,17 +94,17 @@ struct MarkdownWebView: NSViewRepresentable {
         var lastFileURL: URL?
         var lastRequestID = UUID()
         var onFileDrop: @MainActor (URL) -> Void
-        var onDropTargetedChanged: @MainActor (Bool) -> Void
+        var onDropStateChanged: @MainActor (FileDropState) -> Void
         var onDiagnostics: @MainActor (String?) -> Void
         var topContentInset: CGFloat = 20
 
         init(
             onFileDrop: @escaping @MainActor (URL) -> Void,
-            onDropTargetedChanged: @escaping @MainActor (Bool) -> Void,
+            onDropStateChanged: @escaping @MainActor (FileDropState) -> Void,
             onDiagnostics: @escaping @MainActor (String?) -> Void
         ) {
             self.onFileDrop = onFileDrop
-            self.onDropTargetedChanged = onDropTargetedChanged
+            self.onDropStateChanged = onDropStateChanged
             self.onDiagnostics = onDiagnostics
         }
 
@@ -111,9 +114,9 @@ struct MarkdownWebView: NSViewRepresentable {
             }
         }
 
-        func updateDropTargeted(_ isTargeted: Bool) {
+        func updateDropState(_ state: FileDropState) {
             Task { @MainActor in
-                onDropTargetedChanged(isTargeted)
+                onDropStateChanged(state)
             }
         }
 
@@ -186,7 +189,8 @@ struct MarkdownWebView: NSViewRepresentable {
 
 private final class DropReceivingWebView: WKWebView {
     var dropHandler: ((URL) -> Void)?
-    var dropTargetStateHandler: ((Bool) -> Void)?
+    var dropStateHandler: ((FileDropState) -> Void)?
+    var fileValidator: ((URL) -> Bool)?
 
     override init(frame: CGRect, configuration: WKWebViewConfiguration) {
         super.init(frame: frame, configuration: configuration)
@@ -199,46 +203,65 @@ private final class DropReceivingWebView: WKWebView {
     }
 
     override func draggingEntered(_ sender: NSDraggingInfo) -> NSDragOperation {
-        guard droppedFileURL(from: sender) != nil else {
-            dropTargetStateHandler?(false)
+        guard let url = droppedFileURL(from: sender) else {
+            dropStateHandler?(.idle)
             return []
         }
 
-        dropTargetStateHandler?(true)
+        guard fileValidator?(url) ?? true else {
+            dropStateHandler?(.invalid)
+            return []
+        }
+
+        dropStateHandler?(.valid)
         return .copy
     }
 
     override func draggingUpdated(_ sender: NSDraggingInfo) -> NSDragOperation {
-        guard droppedFileURL(from: sender) != nil else {
-            dropTargetStateHandler?(false)
+        guard let url = droppedFileURL(from: sender) else {
+            dropStateHandler?(.idle)
             return []
         }
 
-        dropTargetStateHandler?(true)
+        guard fileValidator?(url) ?? true else {
+            dropStateHandler?(.invalid)
+            return []
+        }
+
+        dropStateHandler?(.valid)
         return .copy
     }
 
     override func draggingExited(_ sender: NSDraggingInfo?) {
-        dropTargetStateHandler?(false)
+        dropStateHandler?(.idle)
     }
 
     override func prepareForDragOperation(_ sender: NSDraggingInfo) -> Bool {
-        droppedFileURL(from: sender) != nil
+        guard let url = droppedFileURL(from: sender) else {
+            return false
+        }
+
+        return fileValidator?(url) ?? true
     }
 
     override func performDragOperation(_ sender: NSDraggingInfo) -> Bool {
         guard let url = droppedFileURL(from: sender) else {
-            dropTargetStateHandler?(false)
+            dropStateHandler?(.idle)
             return false
         }
 
-        dropTargetStateHandler?(false)
+        guard fileValidator?(url) ?? true else {
+            dropStateHandler?(.invalid)
+            return false
+        }
+
+        dropStateHandler?(.idle)
         dropHandler?(url)
         return true
     }
 
     override func concludeDragOperation(_ sender: NSDraggingInfo?) {
-        dropTargetStateHandler?(false)
+        dropStateHandler?(.idle)
     }
 
     private func droppedFileURL(from sender: NSDraggingInfo) -> URL? {

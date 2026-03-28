@@ -2,6 +2,8 @@ import Foundation
 
 @MainActor
 final class DocumentViewModel: ObservableObject {
+    static let supportedFileExtension = "md"
+
     struct PresentedError: Identifiable {
         let id = UUID()
         let message: String
@@ -35,6 +37,11 @@ final class DocumentViewModel: ObservableObject {
     private var previewTimeoutTask: Task<Void, Never>?
 
     func open(url: URL) async -> Bool {
+        guard Self.isSupportedMarkdownFile(url) else {
+            presentedError = PresentedError(message: Self.unsupportedFileMessage(for: url))
+            return false
+        }
+
         stopFileAccess()
 
         let startedAccess = url.startAccessingSecurityScopedResource()
@@ -155,4 +162,11 @@ final class DocumentViewModel: ObservableObject {
         }
     }
 
+    static func isSupportedMarkdownFile(_ url: URL) -> Bool {
+        !url.hasDirectoryPath && url.pathExtension.caseInsensitiveCompare(supportedFileExtension) == .orderedSame
+    }
+
+    static func unsupportedFileMessage(for url: URL) -> String {
+        "\"\(url.lastPathComponent)\" isn’t supported. MarkdownPreview only opens .\(supportedFileExtension) files."
+    }
 }
