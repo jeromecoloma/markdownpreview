@@ -23,12 +23,19 @@ struct ContentView: View {
                     if documentViewModel.useNativeFallback {
                         NativeMarkdownPreview(markdown: documentViewModel.rawMarkdown)
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .onDrop(
+                                of: [UTType.fileURL.identifier],
+                                isTargeted: $isDropTargeted,
+                                perform: handleDrop(providers:)
+                            )
                     } else {
                         MarkdownWebView(
                             html: documentViewModel.renderedHTML,
                             baseURL: documentViewModel.baseURL,
                             fileURL: documentViewModel.renderedFileURL,
                             requestID: documentViewModel.previewRequestID,
+                            onFileDrop: openDroppedFile,
+                            onDropTargetedChanged: updateDropTargetedState,
                             onDiagnostics: { message in
                                 documentViewModel.updatePreviewDiagnostics(message)
                             }
@@ -192,6 +199,17 @@ struct ContentView: View {
         }
     }
 
+    @MainActor
+    private func openDroppedFile(_ url: URL) {
+        isDropTargeted = false
+        openFile(url)
+    }
+
+    @MainActor
+    private func updateDropTargetedState(_ isTargeted: Bool) {
+        self.isDropTargeted = isTargeted
+    }
+
     private func handleDrop(providers: [NSItemProvider]) -> Bool {
         for provider in providers {
             if provider.hasItemConformingToTypeIdentifier(UTType.fileURL.identifier) {
@@ -204,7 +222,7 @@ struct ContentView: View {
                     }
 
                     Task { @MainActor in
-                        openFile(url)
+                        openDroppedFile(url)
                     }
                 }
                 return true

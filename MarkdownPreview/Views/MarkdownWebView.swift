@@ -7,26 +7,41 @@ struct MarkdownWebView: NSViewRepresentable {
     let baseURL: URL?
     let fileURL: URL?
     let requestID: UUID
+    let onFileDrop: @MainActor (URL) -> Void
+    let onDropTargetedChanged: @MainActor (Bool) -> Void
     let onDiagnostics: @MainActor (String?) -> Void
 
     private let topContentInset: CGFloat = 20
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(onDiagnostics: onDiagnostics)
+        Coordinator(
+            onFileDrop: onFileDrop,
+            onDropTargetedChanged: onDropTargetedChanged,
+            onDiagnostics: onDiagnostics
+        )
     }
 
     func makeNSView(context: Context) -> WKWebView {
         let configuration = WKWebViewConfiguration()
         configuration.defaultWebpagePreferences.allowsContentJavaScript = true
 
-        let webView = WKWebView(frame: .zero, configuration: configuration)
+        let webView = DropReceivingWebView(frame: .zero, configuration: configuration)
         webView.navigationDelegate = context.coordinator
+        webView.dropHandler = context.coordinator.handleDroppedFile
+        webView.dropTargetStateHandler = context.coordinator.updateDropTargeted
         webView.setValue(false, forKey: "drawsBackground")
         configureScrollViewIfNeeded(for: webView)
         return webView
     }
 
     func updateNSView(_ webView: WKWebView, context: Context) {
+        if let webView = webView as? DropReceivingWebView {
+            webView.dropHandler = context.coordinator.handleDroppedFile
+            webView.dropTargetStateHandler = context.coordinator.updateDropTargeted
+        }
+
+        context.coordinator.onFileDrop = onFileDrop
+        context.coordinator.onDropTargetedChanged = onDropTargetedChanged
         context.coordinator.onDiagnostics = onDiagnostics
         context.coordinator.topContentInset = topContentInset
         configureScrollViewIfNeeded(for: webView)
@@ -75,11 +90,31 @@ struct MarkdownWebView: NSViewRepresentable {
         var lastBaseURL: URL?
         var lastFileURL: URL?
         var lastRequestID = UUID()
+        var onFileDrop: @MainActor (URL) -> Void
+        var onDropTargetedChanged: @MainActor (Bool) -> Void
         var onDiagnostics: @MainActor (String?) -> Void
         var topContentInset: CGFloat = 20
 
-        init(onDiagnostics: @escaping @MainActor (String?) -> Void) {
+        init(
+            onFileDrop: @escaping @MainActor (URL) -> Void,
+            onDropTargetedChanged: @escaping @MainActor (Bool) -> Void,
+            onDiagnostics: @escaping @MainActor (String?) -> Void
+        ) {
+            self.onFileDrop = onFileDrop
+            self.onDropTargetedChanged = onDropTargetedChanged
             self.onDiagnostics = onDiagnostics
+        }
+
+        func handleDroppedFile(_ url: URL) {
+            Task { @MainActor in
+                onFileDrop(url)
+            }
+        }
+
+        func updateDropTargeted(_ isTargeted: Bool) {
+            Task { @MainActor in
+                onDropTargetedChanged(isTargeted)
+            }
         }
 
         func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) {
@@ -146,5 +181,75 @@ struct MarkdownWebView: NSViewRepresentable {
 
             decisionHandler(.allow)
         }
+    }
+}
+
+private final class DropReceivingWebView: WKWebView {
+    var dropHandler: ((URL) -> Void)?
+    var dropTargetStateHandler: ((Bool) -> Void)?
+
+    override init(frame: CGRect, configuration: WKWebViewConfiguration) {
+        super.init(frame: frame, configuration: configuration)
+        registerForDraggedTypes([.fileURL])
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    override func draggingEntered(_ sender: NSDraggingInfo) -> NSDragOperation {
+        guard droppedFileURL(from: sender) != nil else {
+            dropTargetStateHandler?(false)
+            return []
+        }
+
+        dropTargetStateHandler?(true)
+        return .copy
+    }
+
+    override func draggingUpdated(_ sender: NSDraggingInfo) -> NSDragOperation {
+        guard droppedFileURL(from: sender) != nil else {
+            dropTargetStateHandler?(false)
+            return []
+        }
+
+        dropTargetStateHandler?(true)
+        return .copy
+    }
+
+    override func draggingExited(_ sender: NSDraggingInfo?) {
+        dropTargetStateHandler?(false)
+    }
+
+    override func prepareForDragOperation(_ sender: NSDraggingInfo) -> Bool {
+        droppedFileURL(from: sender) != nil
+    }
+
+    override func performDragOperation(_ sender: NSDraggingInfo) -> Bool {
+        guard let url = droppedFileURL(from: sender) else {
+            dropTargetStateHandler?(false)
+            return false
+        }
+
+        dropTargetStateHandler?(false)
+        dropHandler?(url)
+        return true
+    }
+
+    override func concludeDragOperation(_ sender: NSDraggingInfo?) {
+        dropTargetStateHandler?(false)
+    }
+
+    private func droppedFileURL(from sender: NSDraggingInfo) -> URL? {
+        let pasteboard = sender.draggingPasteboard
+        let options: [NSPasteboard.ReadingOptionKey: Any] = [
+            .urlReadingFileURLsOnly: true
+        ]
+
+        return pasteboard
+            .readObjects(forClasses: [NSURL.self], options: options)?
+            .compactMap { $0 as? URL }
+            .first
     }
 }
