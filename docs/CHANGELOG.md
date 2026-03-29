@@ -11,6 +11,7 @@
 - Added a preview loading overlay so long renders surface visible progress
 - Added in-document search with `Command-F`, `Command-G`, and `Shift-Command-G`
 - Registered the app as a Finder viewer for Markdown files when the built app is installed
+- Added `Command-O` to open a Markdown file from the keyboard
 - Added `Command-R` to reload the current file manually
 
 ## 0.1.0

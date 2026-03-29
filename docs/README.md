@@ -15,6 +15,7 @@ Minimal native macOS Markdown reader built with SwiftUI and `WKWebView`.
 
 ## Keyboard Shortcuts
 
+- `Command-O` opens a Markdown file
 - `Command-F` opens Find
 - `Command-G` jumps to the next search match
 - `Shift-Command-G` jumps to the previous search match

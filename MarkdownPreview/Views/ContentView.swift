@@ -16,6 +16,8 @@ struct ContentView: View {
     @ObservedObject var documentViewModel: DocumentViewModel
     @ObservedObject var recentFilesViewModel: RecentFilesViewModel
     @ObservedObject var previewSearchController: PreviewSearchController
+    let openPanel: () -> Void
+    let openDocument: (URL) -> Void
 
     @State private var fileDropState: FileDropState = .idle
     @State private var invalidDropFeedbackToken = UUID()
@@ -26,7 +28,7 @@ struct ContentView: View {
                 recentFilesViewModel: recentFilesViewModel,
                 currentFileURL: documentViewModel.currentFileURL,
                 isLoading: documentViewModel.isLoading,
-                openPanel: presentOpenPanel,
+                openPanel: openPanel,
                 openRecent: openRecentFile,
                 removeRecent: removeRecentFile
             )
@@ -88,7 +90,7 @@ struct ContentView: View {
         }
         .toolbar {
             ToolbarItemGroup {
-                Button("Open…", action: presentOpenPanel)
+                Button("Open…", action: openPanel)
 
                 if documentViewModel.hasDocument {
                     Button("Reload") {
@@ -141,7 +143,7 @@ struct ContentView: View {
                     .frame(maxWidth: 640)
             }
 
-            Button("Choose .md File…", action: presentOpenPanel)
+            Button("Choose .md File…", action: openPanel)
                 .buttonStyle(.borderedProminent)
                 .controlSize(.large)
         }
@@ -244,25 +246,13 @@ struct ContentView: View {
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 20))
     }
 
-    private func presentOpenPanel() {
-        let panel = NSOpenPanel()
-        panel.allowedContentTypes = markdownTypes
-        panel.allowsMultipleSelection = false
-        panel.canChooseDirectories = false
-        panel.canCreateDirectories = false
-        panel.prompt = "Open"
-
-        guard panel.runModal() == .OK, let url = panel.url else { return }
-        openFile(url)
-    }
-
     private func openRecentFile(_ item: RecentFile) {
         guard let url = recentFilesViewModel.resolveURL(for: item) else {
             documentViewModel.presentedError = .init(message: "The bookmark for this file could not be restored.")
             return
         }
 
-        openFile(url)
+        openDocument(url)
     }
 
     private func removeRecentFile(_ item: RecentFile) {
@@ -271,28 +261,10 @@ struct ContentView: View {
         }
     }
 
-    private func openFile(_ url: URL) {
-        guard DocumentViewModel.isSupportedMarkdownFile(url) else {
-            rejectFile(url)
-            return
-        }
-
-        Task {
-            let opened = await documentViewModel.open(url: url)
-            if opened {
-                await MainActor.run {
-                    withAnimation(.easeInOut(duration: 0.22)) {
-                        recentFilesViewModel.add(url: url)
-                    }
-                }
-            }
-        }
-    }
-
     @MainActor
     private func openDroppedFile(_ url: URL) {
         fileDropState = .idle
-        openFile(url)
+        openDocument(url)
     }
 
     @MainActor
@@ -324,10 +296,6 @@ struct ContentView: View {
         }
 
         return false
-    }
-
-    private var markdownTypes: [UTType] {
-        UTType(filenameExtension: DocumentViewModel.supportedFileExtension).map { [$0] } ?? []
     }
 
     private var dropTargetBinding: Binding<Bool> {

@@ -1,5 +1,6 @@
 import AppKit
 import SwiftUI
+import UniformTypeIdentifiers
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
     var openFilesHandler: (([URL]) -> Void)?
@@ -36,7 +37,9 @@ struct MarkdownPreviewApp: App {
             ContentView(
                 documentViewModel: documentViewModel,
                 recentFilesViewModel: recentFilesViewModel,
-                previewSearchController: previewSearchController
+                previewSearchController: previewSearchController,
+                openPanel: presentOpenPanel,
+                openDocument: openDocument
             )
             .frame(minWidth: 920, minHeight: 620)
             .task {
@@ -46,7 +49,10 @@ struct MarkdownPreviewApp: App {
         .defaultSize(width: 1280, height: 820)
         .windowResizability(.contentSize)
         .commands {
-            PreviewDocumentCommands(documentViewModel: documentViewModel)
+            PreviewDocumentCommands(
+                documentViewModel: documentViewModel,
+                openPanel: presentOpenPanel
+            )
             PreviewSearchCommands(previewSearchController: previewSearchController)
         }
     }
@@ -73,19 +79,54 @@ struct MarkdownPreviewApp: App {
             return
         }
 
-        let opened = await documentViewModel.open(url: url)
-        if opened {
-            withAnimation(.easeInOut(duration: 0.22)) {
-                recentFilesViewModel.add(url: url)
+        openDocument(url)
+    }
+
+    private func presentOpenPanel() {
+        let panel = NSOpenPanel()
+        panel.allowedContentTypes = markdownTypes
+        panel.allowsMultipleSelection = false
+        panel.canChooseDirectories = false
+        panel.canCreateDirectories = false
+        panel.prompt = "Open"
+
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        openDocument(url)
+    }
+
+    private func openDocument(_ url: URL) {
+        guard DocumentViewModel.isSupportedMarkdownFile(url) else {
+            documentViewModel.presentedError = .init(
+                message: DocumentViewModel.unsupportedFileMessage(for: url)
+            )
+            return
+        }
+
+        Task { @MainActor in
+            let opened = await documentViewModel.open(url: url)
+            if opened {
+                withAnimation(.easeInOut(duration: 0.22)) {
+                    recentFilesViewModel.add(url: url)
+                }
             }
         }
+    }
+
+    private var markdownTypes: [UTType] {
+        UTType(filenameExtension: DocumentViewModel.supportedFileExtension).map { [$0] } ?? []
     }
 }
 
 private struct PreviewDocumentCommands: Commands {
     @ObservedObject var documentViewModel: DocumentViewModel
+    let openPanel: () -> Void
 
     var body: some Commands {
+        CommandGroup(replacing: .newItem) {
+            Button("Open…", action: openPanel)
+                .keyboardShortcut("o", modifiers: [.command])
+        }
+
         CommandGroup(after: .saveItem) {
             Button("Reload File") {
                 Task {
