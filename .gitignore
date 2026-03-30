@@ -19,3 +19,4 @@ dist/releases/
 
 # Local tooling noise
 *.log
+.claude/
