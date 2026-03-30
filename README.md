@@ -11,10 +11,12 @@ A minimal native macOS Markdown reader built with SwiftUI and WKWebView.
 ## Features
 
 - Open `.md` files from the sidebar button, by dragging them into the window, or from Finder via `Open With`
-- Render GitHub-flavored Markdown with offline syntax highlighting and Mermaid diagram support
+- Render GitHub-flavored Markdown with offline syntax highlighting, Mermaid diagram support, and dark-mode-aware preview styling
 - Search the loaded document with standard macOS find controls (`Command-F`, `Command-G`, `Shift-Command-G`)
 - Live reload when the underlying file changes on disk
 - Persist the 20 most recent files with security-scoped bookmarks
+- Navigate recent files from the keyboard, then open or remove the selected item without leaving the sidebar
+- Scroll the preview with Vim-style shortcuts when the preview is focused
 - Remove stale recent items directly from the sidebar
 - Unsupported files are rejected with clear inline feedback
 
@@ -27,6 +29,12 @@ A minimal native macOS Markdown reader built with SwiftUI and WKWebView.
 | `Command-F` | Open Find |
 | `Command-G` | Next match |
 | `Shift-Command-G` | Previous match |
+| `Up` / `Down` | Move through recent files when the sidebar is focused |
+| `j` / `k` | Move through recent files in the sidebar, or scroll the preview when it is focused |
+| `Return` / `Space` | Open the selected recent file |
+| `Delete` | Remove the selected recent file from Recent Files |
+| `gg` | Scroll to the top of the preview |
+| `Shift-G` | Scroll to the bottom of the preview |
 
 ## Build from Source
 

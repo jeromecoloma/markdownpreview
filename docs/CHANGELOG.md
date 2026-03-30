@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Added dark-mode-aware preview rendering, including Mermaid diagrams that re-theme with the system appearance
+- Added Vim-style preview scrolling with `j`, `k`, `gg`, and `G` when the preview is focused
+- Added keyboard navigation for Recent Files, including `j`/`k`, `Return`, `Space`, and `Delete`
 - Re-added Mermaid syntax support in the web preview, including offline rendering
 - Fixed reload-triggered cases that incorrectly fell back from the web preview
 - Improved the sidebar with selection animation, hover states, and safer filename layout

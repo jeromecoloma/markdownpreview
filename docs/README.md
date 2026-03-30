@@ -8,8 +8,11 @@ Minimal native macOS Markdown reader built with SwiftUI and `WKWebView`.
 - Reject unsupported files with clear inline and alert feedback
 - Render GitHub-flavored Markdown inside a native split-view shell
 - Render Mermaid diagrams and syntax-highlighted code fully offline
+- Match the rendered preview to the system light or dark appearance
 - Search the loaded document with in-preview find controls and standard macOS shortcuts
 - Persist the 20 most recent files with security-scoped bookmarks
+- Navigate recent files with the keyboard, then open or remove the selected item directly from the sidebar
+- Scroll the preview with Vim-style keyboard controls when it has focus
 - Remove stale recent items directly from the sidebar
 - Live reload when the underlying file changes on disk, with a manual reload command when needed
 
@@ -20,6 +23,12 @@ Minimal native macOS Markdown reader built with SwiftUI and `WKWebView`.
 - `Command-G` jumps to the next search match
 - `Shift-Command-G` jumps to the previous search match
 - `Command-R` reloads the current Markdown file
+- `Up` and `Down` move through recent files when the sidebar is focused
+- `j` and `k` move through recent files in the sidebar, or scroll the preview when it is focused
+- `Return` or `Space` opens the selected recent file
+- `Delete` removes the selected recent file from Recent Files
+- `gg` scrolls the preview to the top
+- `Shift-G` scrolls the preview to the bottom
 
 ## Build
 
