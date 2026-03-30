@@ -23,6 +23,7 @@ struct ContentView: View {
     @State private var fileDropState: FileDropState = .idle
     @State private var invalidDropFeedbackToken = UUID()
     @State private var previewFocusRequestToken = UUID()
+    @State private var keyMonitor: Any?
     @FocusState private var focusedTarget: KeyboardFocusTarget?
 
     var body: some View {
@@ -55,10 +56,12 @@ struct ContentView: View {
             syncSelectedRecentFile()
             updateKeyboardAccessibilityState()
             previewSearchController.setSearchAvailable(documentViewModel.isTextSearchAvailable)
+            installKeyMonitorIfNeeded()
         }
         .onDisappear {
             keyboardAccessibilityController.openSelectedRecentFileAction = nil
             keyboardAccessibilityController.removeSelectedRecentFileAction = nil
+            removeKeyMonitor()
         }
         .onChange(of: documentViewModel.isTextSearchAvailable) { isAvailable in
             previewSearchController.setSearchAvailable(isAvailable)
@@ -134,6 +137,11 @@ struct ContentView: View {
                 isSearchAvailable: documentViewModel.isTextSearchAvailable,
                 searchController: previewSearchController,
                 focusRequestToken: previewFocusRequestToken,
+                scrollCommandToken: keyboardAccessibilityController.previewScrollToken,
+                scrollDirection: keyboardAccessibilityController.previewScrollDirection,
+                onFocusChanged: { isFocused in
+                    keyboardAccessibilityController.markFocused(isFocused ? .preview : nil)
+                },
                 onFileDrop: openDroppedFile,
                 onDropStateChanged: updateDropTargetedState,
                 isFileSupported: DocumentViewModel.isSupportedMarkdownFile(_:),
@@ -494,6 +502,44 @@ struct ContentView: View {
         guard documentViewModel.hasDocument else { return }
         keyboardAccessibilityController.markFocused(.preview)
         previewFocusRequestToken = UUID()
+    }
+
+    private func installKeyMonitorIfNeeded() {
+        guard keyMonitor == nil else { return }
+
+        keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
+            handleKeyEvent(event)
+        }
+    }
+
+    private func removeKeyMonitor() {
+        if let keyMonitor {
+            NSEvent.removeMonitor(keyMonitor)
+        }
+
+        keyMonitor = nil
+    }
+
+    private func handleKeyEvent(_ event: NSEvent) -> NSEvent? {
+        guard keyboardAccessibilityController.focusedTarget == .preview else {
+            return event
+        }
+
+        guard event.modifierFlags.intersection(.deviceIndependentFlagsMask).isEmpty,
+              let characters = event.charactersIgnoringModifiers?.lowercased() else {
+            return event
+        }
+
+        switch characters {
+        case "j":
+            keyboardAccessibilityController.requestPreviewScroll(.down)
+            return nil
+        case "k":
+            keyboardAccessibilityController.requestPreviewScroll(.up)
+            return nil
+        default:
+            return event
+        }
     }
 }
 

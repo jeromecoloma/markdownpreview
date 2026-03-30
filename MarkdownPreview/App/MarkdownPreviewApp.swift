@@ -9,11 +9,18 @@ enum KeyboardFocusTarget: Hashable {
     case preview
 }
 
+enum PreviewScrollDirection {
+    case up
+    case down
+}
+
 @MainActor
 final class KeyboardAccessibilityController: ObservableObject {
     @Published var selectedRecentFileID: String?
     @Published private(set) var requestedFocusTarget: KeyboardFocusTarget?
     @Published private(set) var focusRequestToken = UUID()
+    @Published private(set) var previewScrollToken = UUID()
+    @Published private(set) var previewScrollDirection: PreviewScrollDirection?
     @Published private(set) var focusedTarget: KeyboardFocusTarget?
     @Published private(set) var canFocusRecentFiles = false
     @Published private(set) var canFocusPreview = false
@@ -42,6 +49,12 @@ final class KeyboardAccessibilityController: ObservableObject {
 
         requestedFocusTarget = target
         focusRequestToken = UUID()
+    }
+
+    func requestPreviewScroll(_ direction: PreviewScrollDirection) {
+        guard canFocusPreview else { return }
+        previewScrollDirection = direction
+        previewScrollToken = UUID()
     }
 
     func markFocused(_ target: KeyboardFocusTarget?) {

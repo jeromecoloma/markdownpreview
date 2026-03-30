@@ -258,6 +258,20 @@ struct SidebarView: View {
         removeRecent(item)
     }
 
+    private func moveSelection(offset: Int) {
+        let items = recentFilesViewModel.recentFiles
+        guard !items.isEmpty else { return }
+
+        guard let selectedID = keyboardAccessibilityController.selectedRecentFileID,
+              let currentIndex = items.firstIndex(where: { $0.id == selectedID }) else {
+            keyboardAccessibilityController.selectedRecentFileID = items.first?.id
+            return
+        }
+
+        let nextIndex = min(max(currentIndex + offset, 0), items.count - 1)
+        keyboardAccessibilityController.selectedRecentFileID = items[nextIndex].id
+    }
+
     private func installKeyMonitorIfNeeded() {
         guard keyMonitor == nil else { return }
 
@@ -289,6 +303,12 @@ struct SidebarView: View {
             return nil
         case 51, 117:
             performRemoveSelectedRecentFile()
+            return nil
+        case 38:
+            moveSelection(offset: 1)
+            return nil
+        case 40:
+            moveSelection(offset: -1)
             return nil
         default:
             return event
