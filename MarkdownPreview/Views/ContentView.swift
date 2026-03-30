@@ -24,6 +24,7 @@ struct ContentView: View {
     @State private var invalidDropFeedbackToken = UUID()
     @State private var previewFocusRequestToken = UUID()
     @State private var keyMonitor: Any?
+    @State private var pendingPreviewGDate: Date?
     @FocusState private var focusedTarget: KeyboardFocusTarget?
 
     var body: some View {
@@ -87,6 +88,11 @@ struct ContentView: View {
         .onChange(of: previewSearchController.isFindPresented) { isPresented in
             if !isPresented, documentViewModel.hasDocument {
                 focusPreview()
+            }
+        }
+        .onChange(of: keyboardAccessibilityController.focusedTarget) { target in
+            if target != .preview {
+                pendingPreviewGDate = nil
             }
         }
         .toolbar {
@@ -522,24 +528,51 @@ struct ContentView: View {
 
     private func handleKeyEvent(_ event: NSEvent) -> NSEvent? {
         guard keyboardAccessibilityController.focusedTarget == .preview else {
+            pendingPreviewGDate = nil
             return event
         }
 
-        guard event.modifierFlags.intersection(.deviceIndependentFlagsMask).isEmpty,
-              let characters = event.charactersIgnoringModifiers?.lowercased() else {
+        guard let characters = event.charactersIgnoringModifiers else {
+            pendingPreviewGDate = nil
             return event
         }
 
-        switch characters {
-        case "j":
-            keyboardAccessibilityController.requestPreviewScroll(.down)
-            return nil
-        case "k":
-            keyboardAccessibilityController.requestPreviewScroll(.up)
-            return nil
-        default:
-            return event
+        let modifiers = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+
+        if modifiers.isEmpty {
+            switch characters.lowercased() {
+            case "j":
+                pendingPreviewGDate = nil
+                keyboardAccessibilityController.requestPreviewScroll(.down)
+                return nil
+            case "k":
+                pendingPreviewGDate = nil
+                keyboardAccessibilityController.requestPreviewScroll(.up)
+                return nil
+            case "g":
+                let now = Date()
+                if let pendingPreviewGDate,
+                   now.timeIntervalSince(pendingPreviewGDate) <= 0.6 {
+                    self.pendingPreviewGDate = nil
+                    keyboardAccessibilityController.requestPreviewScroll(.top)
+                } else {
+                    pendingPreviewGDate = now
+                }
+                return nil
+            default:
+                pendingPreviewGDate = nil
+                return event
+            }
         }
+
+        if modifiers == .shift, characters == "G" {
+            pendingPreviewGDate = nil
+            keyboardAccessibilityController.requestPreviewScroll(.bottom)
+            return nil
+        }
+
+        pendingPreviewGDate = nil
+        return event
     }
 }
 

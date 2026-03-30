@@ -12,6 +12,8 @@ enum KeyboardFocusTarget: Hashable {
 enum PreviewScrollDirection {
     case up
     case down
+    case top
+    case bottom
 }
 
 @MainActor

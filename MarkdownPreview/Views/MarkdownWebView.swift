@@ -199,12 +199,32 @@ struct MarkdownWebView: NSViewRepresentable {
 
         func scroll(_ webView: WKWebView, direction: PreviewScrollDirection) {
             DispatchQueue.main.async {
+                if direction == .top || direction == .bottom {
+                    let script = """
+                    (() => {
+                      const scrollingElement = document.scrollingElement || document.documentElement || document.body;
+                      if (!scrollingElement) {
+                        return false;
+                      }
+
+                      const top = \(direction == .top ? "0" : "scrollingElement.scrollHeight");
+                      scrollingElement.scrollTo({ top: top, left: 0, behavior: "smooth" });
+                      return true;
+                    })();
+                    """
+
+                    webView.evaluateJavaScript(script, completionHandler: nil)
+                    return
+                }
+
                 let arrow: (characters: String, keyCode: UInt16) = {
                     switch direction {
                     case .up:
                         return (String(UnicodeScalar(NSUpArrowFunctionKey)!), 126)
                     case .down:
                         return (String(UnicodeScalar(NSDownArrowFunctionKey)!), 125)
+                    case .top, .bottom:
+                        fatalError("Handled above")
                     }
                 }()
 

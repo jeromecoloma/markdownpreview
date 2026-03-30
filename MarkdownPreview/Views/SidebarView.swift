@@ -67,7 +67,8 @@ struct SidebarView: View {
 
             VStack(alignment: .leading, spacing: 8) {
                 Label("Drop a `.md` file anywhere in the window", systemImage: "arrow.down.doc")
-                Label("Use the arrow keys in Recent Files, Return to open, and Delete to remove", systemImage: "keyboard")
+                Label("Use arrow keys or `j`/`k` in Recent Files, Return to open, and Delete to remove", systemImage: "keyboard")
+                Label("Use `j`/`k`, `gg`, and `G` when the preview is focused", systemImage: "chevron.up.chevron.down")
                 Label("Mermaid and syntax highlighting render offline", systemImage: "bolt.horizontal.circle")
             }
             .font(.caption)
