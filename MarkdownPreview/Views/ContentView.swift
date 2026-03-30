@@ -16,65 +16,32 @@ struct ContentView: View {
     @ObservedObject var documentViewModel: DocumentViewModel
     @ObservedObject var recentFilesViewModel: RecentFilesViewModel
     @ObservedObject var previewSearchController: PreviewSearchController
+    @ObservedObject var keyboardAccessibilityController: KeyboardAccessibilityController
     let openPanel: () -> Void
     let openDocument: (URL) -> Void
 
     @State private var fileDropState: FileDropState = .idle
     @State private var invalidDropFeedbackToken = UUID()
+    @State private var previewFocusRequestToken = UUID()
+    @FocusState private var focusedTarget: KeyboardFocusTarget?
 
     var body: some View {
         NavigationSplitView {
             SidebarView(
                 recentFilesViewModel: recentFilesViewModel,
+                keyboardAccessibilityController: keyboardAccessibilityController,
                 currentFileURL: documentViewModel.currentFileURL,
                 isLoading: documentViewModel.isLoading,
                 openPanel: openPanel,
                 openRecent: openRecentFile,
-                removeRecent: removeRecentFile
+                removeRecent: removeRecentFile,
+                focusedField: $focusedTarget
             )
             .navigationSplitViewColumnWidth(min: 260, ideal: 320)
         } detail: {
             Group {
                 if documentViewModel.hasDocument {
-                    ZStack {
-                        MarkdownWebView(
-                            html: documentViewModel.renderedHTML,
-                            baseURL: documentViewModel.baseURL,
-                            fileURL: documentViewModel.renderedFileURL,
-                            requestID: documentViewModel.previewRequestID,
-                            isSearchAvailable: documentViewModel.isTextSearchAvailable,
-                            searchController: previewSearchController,
-                            onFileDrop: openDroppedFile,
-                            onDropStateChanged: updateDropTargetedState,
-                            isFileSupported: DocumentViewModel.isSupportedMarkdownFile(_:),
-                            onDiagnostics: { message in
-                                documentViewModel.updatePreviewDiagnostics(message)
-                            }
-                        )
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .opacity(documentViewModel.useNativeFallback ? 0.001 : 1)
-                        .allowsHitTesting(!documentViewModel.useNativeFallback)
-                        .accessibilityHidden(documentViewModel.useNativeFallback)
-
-                        if documentViewModel.useNativeFallback {
-                            NativeMarkdownPreview(markdown: documentViewModel.rawMarkdown)
-                                .transition(.opacity)
-                        }
-                    }
-                    .animation(.easeInOut(duration: 0.18), value: documentViewModel.useNativeFallback)
-                    .overlay {
-                        previewLoaderOverlay
-                    }
-                    .overlay(alignment: .topTrailing) {
-                        if previewSearchController.isFindPresented,
-                           documentViewModel.hasDocument,
-                           !documentViewModel.useNativeFallback {
-                            PreviewFindBar(searchController: previewSearchController)
-                                .padding(.top, 18)
-                                .padding(.trailing, 18)
-                                .transition(.move(edge: .top).combined(with: .opacity))
-                        }
-                    }
+                    previewContent
                 } else {
                     emptyState
                 }
@@ -83,10 +50,41 @@ struct ContentView: View {
         }
         .navigationTitle(documentViewModel.navigationTitle)
         .onAppear {
+            keyboardAccessibilityController.openSelectedRecentFileAction = openSelectedRecentFile
+            keyboardAccessibilityController.removeSelectedRecentFileAction = removeSelectedRecentFile
+            syncSelectedRecentFile()
+            updateKeyboardAccessibilityState()
             previewSearchController.setSearchAvailable(documentViewModel.isTextSearchAvailable)
+        }
+        .onDisappear {
+            keyboardAccessibilityController.openSelectedRecentFileAction = nil
+            keyboardAccessibilityController.removeSelectedRecentFileAction = nil
         }
         .onChange(of: documentViewModel.isTextSearchAvailable) { isAvailable in
             previewSearchController.setSearchAvailable(isAvailable)
+        }
+        .onChange(of: keyboardAccessibilityController.focusRequestToken) { _ in
+            handleFocusRequest()
+        }
+        .onChange(of: focusedTarget) { target in
+            keyboardAccessibilityController.markFocused(target)
+        }
+        .onChange(of: recentFilesViewModel.recentFiles) { _ in
+            syncSelectedRecentFile()
+            updateKeyboardAccessibilityState()
+        }
+        .onChange(of: documentViewModel.currentFileURL) { _ in
+            syncSelectedRecentFile()
+            updateKeyboardAccessibilityState()
+
+            if documentViewModel.hasDocument {
+                focusPreview()
+            }
+        }
+        .onChange(of: previewSearchController.isFindPresented) { isPresented in
+            if !isPresented, documentViewModel.hasDocument {
+                focusPreview()
+            }
         }
         .toolbar {
             ToolbarItemGroup {
@@ -126,6 +124,54 @@ struct ContentView: View {
         )
     }
 
+    private var previewContent: some View {
+        ZStack {
+            MarkdownWebView(
+                html: documentViewModel.renderedHTML,
+                baseURL: documentViewModel.baseURL,
+                fileURL: documentViewModel.renderedFileURL,
+                requestID: documentViewModel.previewRequestID,
+                isSearchAvailable: documentViewModel.isTextSearchAvailable,
+                searchController: previewSearchController,
+                focusRequestToken: previewFocusRequestToken,
+                onFileDrop: openDroppedFile,
+                onDropStateChanged: updateDropTargetedState,
+                isFileSupported: DocumentViewModel.isSupportedMarkdownFile(_:),
+                onDiagnostics: { message in
+                    documentViewModel.updatePreviewDiagnostics(message)
+                }
+            )
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .opacity(documentViewModel.useNativeFallback ? 0.001 : 1)
+            .allowsHitTesting(!documentViewModel.useNativeFallback)
+
+            if documentViewModel.useNativeFallback {
+                NativeMarkdownPreview(markdown: documentViewModel.rawMarkdown)
+                    .transition(.opacity)
+            }
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Markdown preview")
+        .accessibilityHint("Previewed Markdown content. Use the arrow keys, Page Up, and Page Down to scroll.")
+        .onTapGesture {
+            focusPreview()
+        }
+        .animation(.easeInOut(duration: 0.18), value: documentViewModel.useNativeFallback)
+        .overlay {
+            previewLoaderOverlay
+        }
+        .overlay(alignment: .topTrailing) {
+            if previewSearchController.isFindPresented,
+               documentViewModel.hasDocument,
+               !documentViewModel.useNativeFallback {
+                PreviewFindBar(searchController: previewSearchController)
+                    .padding(.top, 18)
+                    .padding(.trailing, 18)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+            }
+        }
+    }
+
     private var emptyState: some View {
         VStack(spacing: 20) {
             Image(systemName: "doc.text.magnifyingglass")
@@ -146,9 +192,12 @@ struct ContentView: View {
             Button("Choose .md File…", action: openPanel)
                 .buttonStyle(.borderedProminent)
                 .controlSize(.large)
+                .focused($focusedTarget, equals: .emptyStateOpenButton)
+                .accessibilityHint("Open a Markdown file to preview it.")
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(backgroundGradient)
+        .accessibilityElement(children: .contain)
     }
 
     private var backgroundGradient: some View {
@@ -202,6 +251,9 @@ struct ContentView: View {
             }
             .shadow(color: Color.black.opacity(0.08), radius: 22, y: 10)
             .transition(.opacity.combined(with: .scale(scale: 0.96)))
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel(previewLoaderTitle)
+            .accessibilityValue(message)
         }
     }
 
@@ -247,6 +299,7 @@ struct ContentView: View {
     }
 
     private func openRecentFile(_ item: RecentFile) {
+        keyboardAccessibilityController.selectedRecentFileID = item.id
         guard let url = recentFilesViewModel.resolveURL(for: item) else {
             documentViewModel.presentedError = .init(message: "The bookmark for this file could not be restored.")
             return
@@ -259,12 +312,15 @@ struct ContentView: View {
         withAnimation(.easeInOut(duration: 0.18)) {
             recentFilesViewModel.remove(item)
         }
+
+        syncSelectedRecentFile()
     }
 
     @MainActor
     private func openDroppedFile(_ url: URL) {
         fileDropState = .idle
         openDocument(url)
+        focusPreview()
     }
 
     @MainActor
@@ -369,6 +425,75 @@ struct ContentView: View {
                 fileDropState = .idle
             }
         }
+    }
+
+    private func updateKeyboardAccessibilityState() {
+        keyboardAccessibilityController.updateAvailability(
+            hasRecentFiles: !recentFilesViewModel.recentFiles.isEmpty,
+            canFocusPreview: documentViewModel.hasDocument
+        )
+    }
+
+    private func syncSelectedRecentFile() {
+        if let currentMatch = currentRecentFileID {
+            keyboardAccessibilityController.selectedRecentFileID = currentMatch
+            return
+        }
+
+        if let selectedID = keyboardAccessibilityController.selectedRecentFileID,
+           recentFilesViewModel.item(withID: selectedID) != nil {
+            return
+        }
+
+        keyboardAccessibilityController.selectedRecentFileID = recentFilesViewModel.recentFiles.first?.id
+    }
+
+    private var currentRecentFileID: String? {
+        guard let currentFileURL = documentViewModel.currentFileURL else {
+            return nil
+        }
+
+        return recentFilesViewModel.recentFiles.first { item in
+            currentFileURL.lastPathComponent == item.fileName &&
+            currentFileURL.deletingLastPathComponent().path == item.parentDirectory
+        }?.id
+    }
+
+    private func openSelectedRecentFile() {
+        guard let selectedID = keyboardAccessibilityController.selectedRecentFileID,
+              let item = recentFilesViewModel.item(withID: selectedID) else {
+            return
+        }
+
+        openRecentFile(item)
+    }
+
+    private func removeSelectedRecentFile() {
+        guard let selectedID = keyboardAccessibilityController.selectedRecentFileID,
+              let item = recentFilesViewModel.item(withID: selectedID) else {
+            return
+        }
+
+        removeRecentFile(item)
+    }
+
+    private func handleFocusRequest() {
+        guard let requestedTarget = keyboardAccessibilityController.requestedFocusTarget else {
+            return
+        }
+
+        switch requestedTarget {
+        case .sidebarOpenButton, .recentFilesList, .emptyStateOpenButton:
+            focusedTarget = requestedTarget
+        case .preview:
+            focusPreview()
+        }
+    }
+
+    private func focusPreview() {
+        guard documentViewModel.hasDocument else { return }
+        keyboardAccessibilityController.markFocused(.preview)
+        previewFocusRequestToken = UUID()
     }
 }
 

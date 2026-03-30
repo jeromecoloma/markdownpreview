@@ -2,6 +2,61 @@ import AppKit
 import SwiftUI
 import UniformTypeIdentifiers
 
+enum KeyboardFocusTarget: Hashable {
+    case sidebarOpenButton
+    case recentFilesList
+    case emptyStateOpenButton
+    case preview
+}
+
+@MainActor
+final class KeyboardAccessibilityController: ObservableObject {
+    @Published var selectedRecentFileID: String?
+    @Published private(set) var requestedFocusTarget: KeyboardFocusTarget?
+    @Published private(set) var focusRequestToken = UUID()
+    @Published private(set) var focusedTarget: KeyboardFocusTarget?
+    @Published private(set) var canFocusRecentFiles = false
+    @Published private(set) var canFocusPreview = false
+
+    var openSelectedRecentFileAction: (() -> Void)?
+    var removeSelectedRecentFileAction: (() -> Void)?
+
+    func updateAvailability(hasRecentFiles: Bool, canFocusPreview: Bool) {
+        self.canFocusRecentFiles = hasRecentFiles
+        self.canFocusPreview = canFocusPreview
+
+        if !hasRecentFiles {
+            selectedRecentFileID = nil
+        }
+    }
+
+    func requestFocus(_ target: KeyboardFocusTarget) {
+        switch target {
+        case .recentFilesList:
+            guard canFocusRecentFiles else { return }
+        case .preview:
+            guard canFocusPreview else { return }
+        case .sidebarOpenButton, .emptyStateOpenButton:
+            break
+        }
+
+        requestedFocusTarget = target
+        focusRequestToken = UUID()
+    }
+
+    func markFocused(_ target: KeyboardFocusTarget?) {
+        focusedTarget = target
+    }
+
+    func openSelectedRecentFile() {
+        openSelectedRecentFileAction?()
+    }
+
+    func removeSelectedRecentFile() {
+        removeSelectedRecentFileAction?()
+    }
+}
+
 final class AppDelegate: NSObject, NSApplicationDelegate {
     var openFilesHandler: (([URL]) -> Void)?
     private var pendingURLs: [URL] = []
@@ -31,6 +86,7 @@ struct MarkdownPreviewApp: App {
     @StateObject private var documentViewModel = DocumentViewModel()
     @StateObject private var recentFilesViewModel = RecentFilesViewModel()
     @StateObject private var previewSearchController = PreviewSearchController()
+    @StateObject private var keyboardAccessibilityController = KeyboardAccessibilityController()
 
     var body: some Scene {
         WindowGroup {
@@ -38,6 +94,7 @@ struct MarkdownPreviewApp: App {
                 documentViewModel: documentViewModel,
                 recentFilesViewModel: recentFilesViewModel,
                 previewSearchController: previewSearchController,
+                keyboardAccessibilityController: keyboardAccessibilityController,
                 openPanel: presentOpenPanel,
                 openDocument: openDocument
             )
@@ -54,6 +111,7 @@ struct MarkdownPreviewApp: App {
                 openPanel: presentOpenPanel
             )
             PreviewSearchCommands(previewSearchController: previewSearchController)
+            PreviewAccessibilityCommands(keyboardAccessibilityController: keyboardAccessibilityController)
         }
     }
 
@@ -163,6 +221,39 @@ private struct PreviewSearchCommands: Commands {
             }
             .keyboardShortcut("g", modifiers: [.command, .shift])
             .disabled(!previewSearchController.canSearch)
+        }
+    }
+}
+
+private struct PreviewAccessibilityCommands: Commands {
+    @ObservedObject var keyboardAccessibilityController: KeyboardAccessibilityController
+
+    var body: some Commands {
+        CommandMenu("Navigate") {
+            Button("Focus Recent Files") {
+                keyboardAccessibilityController.requestFocus(.recentFilesList)
+            }
+            .keyboardShortcut("1", modifiers: [.command, .option])
+            .disabled(!keyboardAccessibilityController.canFocusRecentFiles)
+
+            Button("Focus Preview") {
+                keyboardAccessibilityController.requestFocus(.preview)
+            }
+            .keyboardShortcut("2", modifiers: [.command, .option])
+            .disabled(!keyboardAccessibilityController.canFocusPreview)
+
+            Divider()
+
+            Button("Open Selected Recent File") {
+                keyboardAccessibilityController.openSelectedRecentFile()
+            }
+            .keyboardShortcut(.return, modifiers: [.command])
+            .disabled(keyboardAccessibilityController.selectedRecentFileID == nil)
+
+            Button("Remove Selected Recent File") {
+                keyboardAccessibilityController.removeSelectedRecentFile()
+            }
+            .disabled(keyboardAccessibilityController.selectedRecentFileID == nil)
         }
     }
 }

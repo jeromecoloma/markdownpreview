@@ -9,6 +9,7 @@ struct MarkdownWebView: NSViewRepresentable {
     let requestID: UUID
     let isSearchAvailable: Bool
     let searchController: PreviewSearchController
+    let focusRequestToken: UUID
     let onFileDrop: @MainActor (URL) -> Void
     let onDropStateChanged: @MainActor (FileDropState) -> Void
     let isFileSupported: (URL) -> Bool
@@ -36,6 +37,8 @@ struct MarkdownWebView: NSViewRepresentable {
         webView.dropStateHandler = context.coordinator.updateDropState
         webView.fileValidator = isFileSupported
         webView.setValue(false, forKey: "drawsBackground")
+        webView.setAccessibilityLabel("Markdown preview")
+        webView.setAccessibilityRole(.group)
         configureScrollViewIfNeeded(for: webView)
         searchController.setSearchAvailable(isSearchAvailable)
         searchController.register(webView: webView)
@@ -56,6 +59,10 @@ struct MarkdownWebView: NSViewRepresentable {
         context.coordinator.searchController = searchController
         context.coordinator.isAttached = true
         configureScrollViewIfNeeded(for: webView)
+        if context.coordinator.lastFocusRequestToken != focusRequestToken {
+            context.coordinator.lastFocusRequestToken = focusRequestToken
+            context.coordinator.focus(webView)
+        }
         searchController.setSearchAvailable(isSearchAvailable)
         searchController.register(webView: webView)
 
@@ -127,6 +134,7 @@ struct MarkdownWebView: NSViewRepresentable {
         var onDropStateChanged: @MainActor (FileDropState) -> Void
         var onDiagnostics: @MainActor (String?) -> Void
         var topContentInset: CGFloat = 20
+        var lastFocusRequestToken = UUID()
         weak var searchController: PreviewSearchController?
         private var navigationRequestIDs: [ObjectIdentifier: UUID] = [:]
 
@@ -157,6 +165,12 @@ struct MarkdownWebView: NSViewRepresentable {
         func updateDropState(_ state: FileDropState) {
             Task { @MainActor in
                 onDropStateChanged(state)
+            }
+        }
+
+        func focus(_ webView: WKWebView) {
+            DispatchQueue.main.async {
+                webView.window?.makeFirstResponder(webView)
             }
         }
 
@@ -260,6 +274,10 @@ private final class DropReceivingWebView: WKWebView {
     var dropHandler: ((URL) -> Void)?
     var dropStateHandler: ((FileDropState) -> Void)?
     var fileValidator: ((URL) -> Bool)?
+
+    override var acceptsFirstResponder: Bool {
+        true
+    }
 
     override init(frame: CGRect, configuration: WKWebViewConfiguration) {
         super.init(frame: frame, configuration: configuration)
