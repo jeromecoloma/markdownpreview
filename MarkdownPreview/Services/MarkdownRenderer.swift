@@ -211,6 +211,7 @@ struct MarkdownRenderer {
                 return;
               }
 
+              const mermaidQuery = window.matchMedia?.("(prefers-color-scheme: dark)") ?? null;
               const mermaidSelector = "pre > code.language-mermaid, pre > code.lang-mermaid";
               for (const codeBlock of root.querySelectorAll(mermaidSelector)) {
                 const pre = codeBlock.parentElement;
@@ -220,7 +221,8 @@ struct MarkdownRenderer {
 
                 const mermaidContainer = document.createElement("div");
                 mermaidContainer.className = "mermaid";
-                mermaidContainer.textContent = codeBlock.textContent ?? "";
+                mermaidContainer.dataset.source = codeBlock.textContent ?? "";
+                mermaidContainer.textContent = mermaidContainer.dataset.source;
                 pre.replaceWith(mermaidContainer);
               }
 
@@ -230,17 +232,40 @@ struct MarkdownRenderer {
                 }
               }
 
-              if (window.mermaid) {
-                const prefersDark = window.matchMedia?.("(prefers-color-scheme: dark)").matches ?? false;
+              const renderMermaid = () => {
+                if (!window.mermaid) {
+                  return;
+                }
+
+                const prefersDark = mermaidQuery?.matches ?? false;
                 window.mermaid.initialize({
                   startOnLoad: false,
                   securityLevel: "loose",
                   theme: prefersDark ? "dark" : "default"
                 });
+
+                for (const diagram of root.querySelectorAll(".mermaid")) {
+                  diagram.removeAttribute("data-processed");
+                  diagram.innerHTML = "";
+                  diagram.textContent = diagram.dataset.source ?? "";
+                }
+
                 window.mermaid.run({
                   querySelector: "#markdown-root .mermaid",
                   suppressErrors: true
                 });
+              };
+
+              renderMermaid();
+
+              if (mermaidQuery) {
+                const rerender = () => renderMermaid();
+
+                if (typeof mermaidQuery.addEventListener === "function") {
+                  mermaidQuery.addEventListener("change", rerender);
+                } else if (typeof mermaidQuery.addListener === "function") {
+                  mermaidQuery.addListener(rerender);
+                }
               }
             })();
           </script>
